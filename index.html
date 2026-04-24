@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sift — The 2% Context Filter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  background:#000;color:#fff;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+:root{
+  --white:#ffffff;--gray:#9a9a9a;--faint:#1a1a1a;
+  --border:rgba(255,255,255,0.07);
+  --mono:'JetBrains Mono',monospace;
+}
+::selection{background:rgba(255,255,255,0.15)}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#222;border-radius:2px}
+
+/* KEYFRAMES */
+@keyframes blobA{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(60px,-40px) scale(1.08)}66%{transform:translate(-40px,30px) scale(0.95)}}
+@keyframes blobB{0%,100%{transform:translate(0,0) scale(1)}40%{transform:translate(-80px,50px) scale(1.12)}70%{transform:translate(50px,-30px) scale(0.93)}}
+@keyframes blobC{0%,100%{transform:translate(0,0) scale(1)}30%{transform:translate(40px,60px) scale(0.9)}65%{transform:translate(-60px,-20px) scale(1.1)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(32px);filter:blur(8px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes counterLine{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes glowPulse{0%,100%{opacity:0.4}50%{opacity:0.8}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes wordIn{from{opacity:0;transform:translateY(22px);filter:blur(6px)}to{opacity:1;transform:translateY(0);filter:blur(0)}}
+@keyframes breathe{0%,100%{opacity:0.25;transform:translateX(-50%) translateY(0)}50%{opacity:0.6;transform:translateX(-50%) translateY(4px)}}
+@keyframes navGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.15)}50%{box-shadow:0 0 0 4px rgba(255,255,255,0.06)}}
+
+/* NAV */
+#nav{
+  position:fixed;top:0;left:0;right:0;z-index:1000;
+  height:56px;display:flex;align-items:center;padding:0 48px;
+  transition:background 0.4s,border-color 0.4s;
+  border-bottom:1px solid transparent;
+}
+#nav.scrolled{background:rgba(0,0,0,0.85);border-color:var(--border);backdrop-filter:blur(16px)}
+.nav-logo{display:flex;align-items:center;gap:8px}
+.nav-logo-mark{width:22px;height:22px;border:1.5px solid rgba(255,255,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-logo span{font-size:15px;font-weight:600;letter-spacing:-0.03em}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:32px}
+.nav-link{font-size:13px;color:#555;text-decoration:none;transition:color 0.2s;letter-spacing:-0.01em}
+.nav-link:hover{color:#aaa}
+.nav-btn{
+  padding:7px 18px;border-radius:8px;
+  background:#fff;color:#000;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;font-weight:500;border:none;cursor:pointer;
+  transition:transform 0.2s,background 0.15s;
+  letter-spacing:-0.01em;
+  animation:navGlow 3s ease-in-out infinite;
+}
+.nav-btn:hover{background:#e8e8e8;transform:translateY(-1px)}
+
+/* HERO */
+#hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:120px 24px 100px;
+  position:relative;overflow:hidden;
+}
+#hero::after{
+  content:'';
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:radial-gradient(400px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,0.04),transparent 65%);
+  transition:background 0.1s;
+}
+.blobs{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.12}
+.blob-1{width:600px;height:600px;background:#fff;top:-100px;left:-100px;animation:blobA 18s ease-in-out infinite}
+.blob-2{width:500px;height:500px;background:#fff;bottom:-50px;right:-80px;animation:blobB 22s ease-in-out infinite}
+.blob-3{width:350px;height:350px;background:#fff;top:40%;left:50%;transform:translate(-50%,-50%);animation:blobC 15s ease-in-out infinite;opacity:0.05}
+.grain{position:absolute;inset:0;pointer-events:none;z-index:1;opacity:0.035}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--border);border-radius:100px;
+  padding:5px 14px;margin-bottom:40px;
+  font-size:12px;color:#777;letter-spacing:0.06em;text-transform:uppercase;
+  font-family:var(--mono);
+  animation:fadeUp 0.8s 0.1s ease both;
+  position:relative;z-index:2;
+}
+.hero-dot{width:5px;height:5px;border-radius:50%;background:#333;animation:glowPulse 2s ease infinite}
+h1.hero-h{
+  font-size:clamp(52px,8vw,104px);
+  font-weight:700;letter-spacing:-0.05em;line-height:0.95;
+  color:#fff;max-width:900px;margin-bottom:28px;
+  position:relative;z-index:2;
+}
+.w{
+  display:inline-block;
+  animation:wordIn 0.55s cubic-bezier(0.22,1,0.36,1) calc(0.1s + var(--d) * 0.06s) both;
+}
+.sift-word{
+  display:inline-block;position:relative;
+  background:linear-gradient(105deg,#fff 0%,#fff 35%,rgba(255,255,255,0.9) 45%,#fff 55%,#fff 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:shimmer 4s 2s linear infinite;
+}
+.hero-sub{
+  font-size:18px;color:#888;line-height:1.65;
+  max-width:640px;margin-bottom:52px;font-weight:400;
+  animation:fadeUp 0.8s 0.35s ease both;
+  position:relative;z-index:2;
+  text-align:left;
+}
+.hero-form{
+  display:flex;gap:8px;
+  animation:fadeUp 0.8s 0.45s ease both;
+  position:relative;z-index:2;
+}
+.hero-input{
+  width:280px;height:48px;
+  background:transparent;
+  border:0.5px solid rgba(255,255,255,0.18);
+  border-radius:10px;padding:0 18px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;color:#fff;outline:none;
+  transition:border-color 0.3s cubic-bezier(0.22,1,0.36,1),box-shadow 0.3s cubic-bezier(0.22,1,0.36,1);
+  letter-spacing:-0.01em;
+}
+.hero-input::placeholder{color:#2e2e2e}
+.hero-input:focus{
+  border-color:rgba(255,255,255,0.45);
+  box-shadow:0 0 0 3px rgba(255,255,255,0.04),0 0 20px rgba(255,255,255,0.04);
+}
+.hero-cta{
+  height:48px;padding:0 24px;
+  background:#fff;color:#000;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;font-weight:500;border:none;
+  border-radius:10px;cursor:pointer;
+  transition:transform 0.25s cubic-bezier(0.22,1,0.36,1),background 0.15s,box-shadow 0.25s cubic-bezier(0.22,1,0.36,1);
+  letter-spacing:-0.02em;white-space:nowrap;
+  will-change:transform;
+}
+.hero-cta:hover{transform:scale(1.05);background:#fff;box-shadow:0 0 28px rgba(255,255,255,0.25),0 0 60px rgba(255,255,255,0.08)}
+.hero-micro{
+  font-size:12px;color:#666;margin-top:14px;
+  font-family:var(--mono);
+  animation:fadeUp 0.8s 0.55s ease both;
+  position:relative;z-index:2;
+}
+.hero-success{
+  display:none;align-items:center;gap:10px;
+  font-size:13px;color:#888;font-family:var(--mono);
+  position:relative;z-index:2;
+}
+.hero-success.show{display:flex;animation:fadeUp 0.4s ease both}
+.scroll-hint{
+  position:absolute;bottom:40px;left:50%;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  font-size:11px;color:#555;letter-spacing:0.1em;text-transform:uppercase;
+  font-family:var(--mono);z-index:2;
+  animation:breathe 3s cubic-bezier(0.37,0,0.63,1) 1s infinite;
+}
+.scroll-arrow{display:flex}
+
+/* SECTION BASE */
+.section{padding:120px 48px;max-width:1200px;margin:0 auto;position:relative}
+.s-eyebrow{font-family:var(--mono);font-size:11px;color:#666;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:20px}
+.s-title{font-size:clamp(32px,4.5vw,54px);font-weight:700;letter-spacing:-0.04em;line-height:1.05;color:#fff;margin-bottom:16px;text-wrap:balance}
+.s-sub{font-size:16px;color:#888;line-height:1.65;max-width:460px;font-weight:400}
+.section-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:80px 48px}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(28px);filter:blur(4px);transition:opacity 0.7s cubic-bezier(0.22,1,0.36,1),transform 0.7s cubic-bezier(0.22,1,0.36,1),filter 0.7s ease}
+.reveal.in{opacity:1;transform:translateY(0);filter:blur(0)}
+.reveal-d1{transition-delay:0.1s}.reveal-d2{transition-delay:0.2s}.reveal-d3{transition-delay:0.3s}.reveal-d4{transition-delay:0.4s}
+
+/* PROBLEM */
+#problem{padding:140px 48px;text-align:center;position:relative;overflow:hidden}
+#problem::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(255,255,255,0.02) 0%,transparent 70%)}
+.stat-hero{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:64px}
+.stat-big{font-size:clamp(80px,16vw,180px);font-weight:700;letter-spacing:-0.06em;line-height:1;color:#fff;font-variant-numeric:tabular-nums}
+.stat-big-label{font-size:18px;color:#777;max-width:480px;line-height:1.6}
+.token-bar{width:100%;max-width:600px;margin:0 auto 16px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:visible;position:relative}
+.token-bar-fill{
+  height:100%;
+  background:linear-gradient(90deg,rgba(255,255,255,0.4),#fff);
+  width:0%;border-radius:3px;
+  transition:width 1.2s cubic-bezier(0.22,1,0.36,1);
+  position:relative;
+}
+.token-bar-fill::after{
+  content:'';
+  position:absolute;right:-4px;top:50%;transform:translateY(-50%);
+  width:8px;height:8px;border-radius:50%;
+  background:#fff;box-shadow:0 0 8px rgba(255,255,255,0.8),0 0 20px rgba(255,255,255,0.4);
+}
+.bar-labels{display:flex;justify-content:space-between;max-width:600px;margin:8px auto 0;font-size:12px;font-family:var(--mono);color:#666}
+
+/* SAVINGS */
+.savings-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-top:56px}
+.saving-card{background:#000;padding:40px 32px;transition:background 0.2s}
+.saving-card:hover{background:#050505}
+.saving-num{font-size:clamp(48px,6vw,72px);font-weight:700;letter-spacing:-0.05em;color:#fff;line-height:1;margin-bottom:12px;font-variant-numeric:tabular-nums}
+.saving-label{font-size:14px;color:#888;line-height:1.5}
+.saving-context{font-size:11px;color:#444;font-family:var(--mono);margin-top:8px;line-height:1.5}
+.saving-icon{width:32px;height:32px;border-radius:8px;border:1px solid var(--faint);display:flex;align-items:center;justify-content:center;margin-bottom:24px}
+
+/* HOW IT WORKS — STICKY */
+.hiw-outer{position:relative}
+.hiw-inner{position:sticky;top:0;height:100vh;display:flex;align-items:center;padding-top:0}
+.hiw-container{display:grid;grid-template-columns:1fr 1fr;gap:80px;align-items:center;padding:0 80px;width:100%;max-width:1200px;margin:0 auto}
+.hiw-steps-list{display:flex;flex-direction:column;gap:0}
+.hiw-step{padding:14px 0;border-top:1px solid var(--border);cursor:default;transition:border-color 0.3s}
+.hiw-step.active{border-color:rgba(255,255,255,0.15)}
+.hiw-step-num{font-family:var(--mono);font-size:11px;color:#444;margin-bottom:4px;transition:color 0.3s;letter-spacing:0.06em}
+.hiw-step.active .hiw-step-num{color:#888}
+.hiw-step-title{font-size:17px;font-weight:600;letter-spacing:-0.03em;color:#444;margin-bottom:4px;transition:color 0.4s}
+.hiw-step.active .hiw-step-title{color:#fff}
+.hiw-step-desc{font-size:12px;color:#333;line-height:1.6;max-height:0;overflow:hidden;transition:max-height 0.5s cubic-bezier(0.22,1,0.36,1),color 0.3s,opacity 0.3s;opacity:0}
+.hiw-step.active .hiw-step-desc{max-height:56px;opacity:1;color:#888}
+.hiw-visual{position:relative;height:380px;display:flex;align-items:center;justify-content:center}
+.pipeline{display:flex;flex-direction:column;gap:0;width:100%}
+.pipe-node{
+  display:flex;align-items:center;gap:16px;padding:14px 18px;
+  border:1px solid var(--faint);border-radius:10px;
+  background:#000;transition:border-color 0.4s,background 0.4s;
+  margin-bottom:2px;
+}
+.pipe-node.lit{border-color:rgba(255,255,255,0.15);background:rgba(255,255,255,0.03)}
+.pipe-node.highlight{border-color:rgba(255,255,255,0.3);background:rgba(255,255,255,0.06)}
+.pipe-dot{width:10px;height:10px;border-radius:50%;background:#1a1a1a;border:1px solid #2a2a2a;flex-shrink:0;transition:background 0.4s,border-color 0.4s,box-shadow 0.4s}
+.pipe-node.lit .pipe-dot{background:#333;border-color:#444}
+.pipe-node.highlight .pipe-dot{background:#e8e8e8;border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,0.6)}
+.pipe-label{font-size:13px;color:#555;font-weight:500;transition:color 0.4s;letter-spacing:-0.01em}
+.pipe-node.lit .pipe-label{color:#999}
+.pipe-node.highlight .pipe-label{color:#e8e8e8}
+.pipe-sublabel{font-size:11px;color:#444;font-family:var(--mono);margin-left:auto;transition:color 0.4s}
+.pipe-node.lit .pipe-sublabel{color:#666}
+.pipe-connector{width:2px;height:16px;background:var(--faint);margin-left:24px;transition:background 0.4s}
+.pipe-connector.lit{background:#2a2a2a}
+.hiw-progress{position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--faint)}
+.hiw-progress-fill{width:100%;background:#fff;height:0%;transition:height 0.6s cubic-bezier(0.22,1,0.36,1);transform-origin:top}
+
+/* DIGITAL BRAIN */
+.brain-canvas{
+  position:relative;width:100%;height:540px;
+  background:#000;border:1px solid var(--border);border-radius:16px;overflow:hidden;
+  cursor:default;
+}
+.brain-svg{position:absolute;inset:0;width:100%;height:100%}
+.brain-tooltip{
+  position:absolute;z-index:10;
+  background:#0e0e0e;border:1px solid rgba(255,255,255,0.12);
+  border-radius:8px;padding:10px 14px;
+  font-size:12px;color:#ccc;
+  font-family:var(--mono);line-height:1.5;
+  pointer-events:none;opacity:0;
+  transition:opacity 0.2s;max-width:220px;white-space:normal;
+  box-shadow:0 8px 32px rgba(0,0,0,0.8);
+}
+.brain-tooltip.show{opacity:1}
+.brain-tooltip-type{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px}
+.brain-label{text-align:center;font-size:11px;color:#444;font-family:var(--mono);margin-top:14px;letter-spacing:0.04em}
+.brain-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden} /* kept for compat */
+.brain-stat{background:#000;padding:16px 20px;text-align:center}
+.brain-stat-num{font-size:32px;font-weight:700;letter-spacing:-0.04em;color:#fff;line-height:1}
+.brain-stat-label{font-size:12px;color:#555;margin-top:4px}
+
+/* DIFF LIST */
+.diff-list{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--border)}
+.diff-item{display:flex;align-items:baseline;gap:32px;padding:28px 0;border-bottom:1px solid var(--border);transition:opacity 0.2s}
+.diff-item:hover .diff-title{color:#fff}
+.diff-title{font-size:18px;font-weight:600;color:#888;letter-spacing:-0.02em;min-width:220px;flex-shrink:0;transition:color 0.2s}
+.diff-desc{font-size:15px;color:#555;line-height:1.5}
+
+/* PRICING */
+.pricing-wrap{display:flex;justify-content:center;margin-top:56px}
+.price-card{
+  width:100%;max-width:440px;
+  background:#050505;border:1px solid var(--border);border-radius:18px;
+  padding:44px;transition:border-color 0.3s,box-shadow 0.3s;
+  position:relative;overflow:hidden;
+}
+.price-card::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:300px;height:200px;background:radial-gradient(ellipse,rgba(255,255,255,0.04),transparent 70%);pointer-events:none}
+.price-card:hover{border-color:rgba(255,255,255,0.15);box-shadow:0 0 60px rgba(255,255,255,0.03)}
+.price-num{font-size:72px;font-weight:700;letter-spacing:-0.06em;line-height:1;color:#fff}
+.price-period{font-size:14px;color:#777;margin-top:4px;font-family:var(--mono)}
+.price-divider{height:1px;background:var(--border);margin:28px 0}
+.price-list{list-style:none;display:flex;flex-direction:column;gap:0}
+.price-list li{padding:11px 0;border-bottom:1px solid var(--faint);font-size:14px;color:#888;display:flex;align-items:center;gap:12px}
+.price-list li:last-child{border-bottom:none}
+.price-check{width:5px;height:5px;border-radius:50%;background:#2a2a2a;flex-shrink:0}
+.price-cta{
+  width:100%;height:48px;margin-top:28px;
+  background:#fff;color:#000;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;font-weight:500;border:none;
+  border-radius:10px;cursor:pointer;
+  transition:transform 0.2s,background 0.15s;
+  letter-spacing:-0.02em;
+}
+.price-cta:hover{transform:translateY(-2px);background:#e8e8e8}
+
+/* FINAL CTA */
+#final-cta{
+  text-align:center;padding:160px 48px 120px;
+  position:relative;overflow:hidden;
+}
+#final-cta::before{
+  content:'';position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:800px;height:400px;
+  background:radial-gradient(ellipse,rgba(255,255,255,0.04) 0%,transparent 65%);
+  pointer-events:none;animation:glowPulse 4s ease-in-out infinite;
+}
+.final-title{font-size:clamp(36px,6vw,72px);font-weight:700;letter-spacing:-0.05em;color:#fff;margin-bottom:20px;line-height:1;text-wrap:balance}
+.final-sub{font-size:16px;color:#888;margin-bottom:48px}
+.final-form{display:flex;gap:8px;justify-content:center}
+.final-success{display:none;align-items:center;justify-content:center;gap:10px;font-size:13px;color:#555;font-family:var(--mono)}
+.final-success.show{display:flex;animation:fadeUp 0.4s ease both}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:28px 48px;display:flex;align-items:center;justify-content:space-between}
+.foot-logo{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#666;letter-spacing:-0.02em}
+.foot-tagline{font-size:14px;color:#555;font-family:var(--mono);letter-spacing:0.02em}
+.foot-copy{font-size:12px;color:#444;font-family:var(--mono)}
+
+/* MOBILE */
+@media(max-width:768px){
+  #nav{padding:0 20px}
+  .nav-right .nav-link{display:none}
+  .section{padding:80px 20px}
+  #problem{padding:100px 20px}
+  .savings-grid{grid-template-columns:1fr}
+  .hiw-container{grid-template-columns:1fr;padding:0 24px;gap:40px}
+  .hiw-visual{display:none}
+  .final-form{flex-direction:column;align-items:center}
+  footer{flex-direction:column;gap:12px;padding:24px 20px;text-align:center}
+  .diff-item{flex-direction:column;gap:8px}
+  .diff-title{min-width:unset}
+}
+</style>
+</head>
+<body>
+
+<!-- SVG GRAIN -->
+<svg style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9999" xmlns="http://www.w3.org/2000/svg">
+  <filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  <rect width="100%" height="100%" filter="url(#noise)" opacity="0.04"/>
+</svg>
+
+<!-- NAV -->
+<nav id="nav">
+  <div class="nav-logo">
+    <div class="nav-logo-mark">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3h6M2.5 5h5M3.5 7h3" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" stroke-linecap="round"/></svg>
+    </div>
+    <span>Sift</span>
+  </div>
+  <div class="nav-right">
+    <a href="#how-it-works" class="nav-link">How it works</a>
+    <a href="#features" class="nav-link">Features</a>
+    <a href="#pricing" class="nav-link">Pricing</a>
+    <button class="nav-btn" onclick="scrollToWaitlist()">Join waitlist</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="blobs">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+  <div class="hero-tag"><span class="hero-dot"></span>Now taking early access</div>
+  <h1 class="hero-h">
+    <span class="w" style="--d:0">Context</span> <span class="w" style="--d:1">optimization</span> <span class="w" style="--d:2">for</span><br>
+    <span class="w" style="--d:3">coding</span> <span class="w" style="--d:4">sessions.</span>
+  </h1>
+  <p class="hero-sub">Sift reduces token waste in long-running workflows by keeping what matters, dropping the fluff.</p>
+  <div class="hero-form" id="hero-form">
+    <input class="hero-input" id="hero-email" type="email" name="email" placeholder="your@email.com" autocomplete="email"/>
+    <button class="hero-cta" onclick="heroSubmit()">Join the waitlist</button>
+  </div>
+  <div class="hero-success" id="hero-success">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#444" stroke-width="1.2"/><path d="M4.5 7l2 2 3-3" stroke="#888" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    You're on the list. We'll reach out soon.
+  </div>
+  <p class="hero-micro" id="hero-micro">No credit card · $5/mo at launch · BYOK</p>
+  <div class="scroll-hint">
+    <span>scroll</span>
+    <div class="scroll-arrow">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M3 8l4 4 4-4" stroke="#555" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="stat-hero">
+    <div class="stat-big reveal" id="stat-counter" data-target="98" data-suffix="%" data-rush="1">0%</div>
+    <div class="stat-big-label reveal reveal-d1">In long coding sessions, 98% of re-sent context is redundant.<br>Sift keeps only what's relevant to your current task.</div>
+  </div>
+  <div class="token-bar reveal reveal-d2">
+    <div class="token-bar-fill" id="token-bar-fill"></div>
+  </div>
+  <div class="bar-labels reveal reveal-d2">
+    <span>wasted context</span>
+    <span id="sift-pct">2% → Sift</span>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- SAVINGS -->
+<section class="section" id="savings">
+  <div class="reveal"><div class="s-eyebrow">What you get</div></div>
+  <div class="reveal reveal-d1"><h2 class="s-title">Real numbers.<br>Real savings.</h2></div>
+  <div class="savings-grid">
+    <div class="saving-card reveal">
+      <div class="saving-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 11L7 3l5 8H2z" stroke="#555" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+      <div class="saving-num" data-target="80" data-suffix="%">0%</div>
+      <div class="saving-label">reduction in token usage<br>on average per session</div>
+      <div class="saving-context">(measured on coding + agentic workflows)</div>
+    </div>
+    <div class="saving-card reveal reveal-d1">
+      <div class="saving-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="#555" stroke-width="1.2"/><path d="M7 4v3l2 2" stroke="#555" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+      <div class="saving-num" data-target="3" data-suffix="×">0×</div>
+      <div class="saving-label">faster responses from<br>smaller, sharper prompts</div>
+      <div class="saving-context">(on long-running sessions)</div>
+    </div>
+    <div class="saving-card reveal reveal-d2">
+      <div class="saving-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 10h10M4 7l2-4 2 4 2-6" stroke="#555" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="saving-num" data-target="5" data-prefix="$">$0</div>
+      <div class="saving-label">flat per month for Sift.<br>You pay LLMs only for what's sent.</div>
+      <div class="saving-context">(local inference, no server costs)</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- HOW IT WORKS -->
+<div id="how-it-works" style="position:relative">
+  <div class="hiw-outer" style="height:360vh">
+    <div class="hiw-inner">
+      <div class="hiw-container">
+        <div style="position:relative">
+          <div class="hiw-progress"><div class="hiw-progress-fill" id="hiw-prog"></div></div>
+          <div style="padding-left:24px">
+            <div style="margin-bottom:16px">
+              <div class="s-eyebrow">How it works</div>
+              <h2 class="s-title" style="font-size:clamp(22px,2.4vw,32px);margin-bottom:6px">Five steps.<br>One laser prompt.</h2>
+              <p class="s-sub" style="margin-top:6px;font-size:12px">Designed for coding agents, agentic workflows, and extended chat sessions where context bloat becomes expensive.</p>
+            </div>
+            <div class="hiw-steps-list">
+              <div class="hiw-step" id="hiw-s0">
+                <div class="hiw-step-num">00 — Your Prompt</div>
+                <div class="hiw-step-title">It starts with you</div>
+                <div class="hiw-step-desc">You type normally. Sift intercepts before anything reaches the LLM — reading your intent, checking your history, and deciding what context is actually worth sending.</div>
+              </div>
+              <div class="hiw-step" id="hiw-s1">
+                <div class="hiw-step-num">01 — Semantic Retrieval</div>
+                <div class="hiw-step-title">Find what actually matters</div>
+                <div class="hiw-step-desc">Every message is embedded locally as a vector. When you send a query, Sift runs a similarity search and retrieves only the top relevant nodes — typically 2% of total context.</div>
+              </div>
+              <div class="hiw-step" id="hiw-s2">
+                <div class="hiw-step-num">02 — Context Compression</div>
+                <div class="hiw-step-title">Shrink without losing signal</div>
+                <div class="hiw-step-desc">Long context blocks are summarized. Redundancy is removed. Code is preserved verbatim. Dynamic token budgeting decides exactly how much to keep.</div>
+              </div>
+              <div class="hiw-step" id="hiw-s3">
+                <div class="hiw-step-num">03 — Laser Prompt Assembly</div>
+                <div class="hiw-step-title">One precise, high-signal prompt</div>
+                <div class="hiw-step-desc">System rules + user preferences + relevant context nodes + compressed query — assembled into the smallest possible prompt that produces the best possible answer.</div>
+              </div>
+              <div class="hiw-step" id="hiw-s4">
+                <div class="hiw-step-num">04 — LLM</div>
+                <div class="hiw-step-title">Your key. Your model.</div>
+                <div class="hiw-step-desc">The laser prompt is sent directly to your chosen provider — OpenAI, Anthropic, Gemini. Sift never sees your API key. Everything routes client-side.</div>
+              </div>
+              <div class="hiw-step" id="hiw-s5">
+                <div class="hiw-step-num">05 — Response</div>
+                <div class="hiw-step-title">Faster. Cheaper. Cleaner.</div>
+                <div class="hiw-step-desc">Output comes back optimized. Fewer tokens, sharper answers. Up to 60% reduction in output length — without losing the signal you actually needed.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="hiw-visual">
+          <div class="pipeline" id="pipeline">
+            <div class="pipe-node" id="p0">
+              <div class="pipe-dot"></div>
+              <span class="pipe-label">Your prompt</span>
+              <span class="pipe-sublabel">input</span>
+            </div>
+            <div class="pipe-connector" id="pc0"></div>
+            <div class="pipe-node" id="p1">
+              <div class="pipe-dot"></div>
+              <span class="pipe-label">Semantic retrieval</span>
+              <span class="pipe-sublabel">12 → 3 nodes</span>
+            </div>
+            <div class="pipe-connector" id="pc1"></div>
+            <div class="pipe-node" id="p2">
+              <div class="pipe-dot"></div>
+              <span class="pipe-label">Context compression</span>
+              <span class="pipe-sublabel">8,420 → 847 tk</span>
+            </div>
+            <div class="pipe-connector" id="pc2"></div>
+            <div class="pipe-node" id="p3">
+              <div class="pipe-dot"></div>
+              <span class="pipe-label">Laser prompt</span>
+              <span class="pipe-sublabel">assembled</span>
+            </div>
+            <div class="pipe-connector" id="pc3"></div>
+            <div class="pipe-node" id="p4">
+              <div class="pipe-dot"></div>
+              <span class="pipe-label">LLM</span>
+              <span class="pipe-sublabel">your API key</span>
+            </div>
+            <div class="pipe-connector" id="pc4"></div>
+            <div class="pipe-node" id="p5">
+              <div class="pipe-dot"></div>
+              <span class="pipe-label">Response</span>
+              <span class="pipe-sublabel">–80% tokens</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- DIGITAL BRAIN -->
+<section class="section" id="brain" style="padding-top:48px;padding-bottom:48px">
+  <div class="reveal"><div class="s-eyebrow">Digital Brain</div></div>
+  <div class="reveal reveal-d1"><h2 class="s-title" style="font-size:clamp(24px,3vw,38px);margin-bottom:8px">Every conversation. Every rule.<br>One living memory.</h2></div>
+  <div class="reveal reveal-d2"><p class="s-sub" style="font-size:14px;margin-bottom:0">Sift doesn't just optimize your prompts — it remembers how you think. Your digital brain grows with every session.</p></div>
+
+  <div class="reveal" style="margin-top:20px;display:flex;gap:20px;align-items:stretch">
+
+    <div style="display:flex;flex-direction:column;gap:12px;flex-shrink:0;width:130px;justify-content:center">
+      <div class="brain-stat" style="border:1px solid var(--border);border-radius:12px">
+        <div class="brain-stat-num">75</div>
+        <div class="brain-stat-label">memories stored</div>
+      </div>
+      <div class="brain-stat" style="border:1px solid var(--border);border-radius:12px">
+        <div class="brain-stat-num">76</div>
+        <div class="brain-stat-label">active rules</div>
+      </div>
+      <div class="brain-stat" style="border:1px solid var(--border);border-radius:12px">
+        <div class="brain-stat-num">74</div>
+        <div class="brain-stat-label">active projects</div>
+      </div>
+    </div>
+
+    <div class="brain-wrap" style="flex:1;min-width:0">
+      <div class="brain-canvas" id="brain-canvas">
+        <svg class="brain-svg" id="brain-svg" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id="glow-sm" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <filter id="glow-md" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="6" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <g id="brain-links"></g>
+          <g id="brain-node-group"></g>
+        </svg>
+        <div class="brain-tooltip" id="brain-tooltip"></div>
+      </div>
+      <div class="brain-label">Your brain. Your machine. Never leaves your browser.</div>
+    </div>
+
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- FEATURES / DIFF -->
+<section class="section" id="features">
+  <div class="reveal"><div class="s-eyebrow">What makes Sift different</div></div>
+  <div class="reveal reveal-d1"><h2 class="s-title">Not a chatbot. A co-pilot<br>that makes you dangerous.</h2></div>
+  <div class="reveal reveal-d2" style="margin-bottom:0"><p class="s-sub">Gemini is free. This is for developers who run long coding sessions and pay their own API bills.</p></div>
+
+  <div class="diff-list reveal" style="margin-top:56px">
+    <div class="diff-item">
+      <div class="diff-title">Prompt Intelligence</div>
+      <div class="diff-desc">Understands code context. Keeps implementation details, drops solved problems.</div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-title">Design Co-Pilot</div>
+      <div class="diff-desc">Remembers your design system and UI patterns across sessions.</div>
+    </div>
+    <div class="diff-item">
+      <div class="diff-title">Code Review Mode</div>
+      <div class="diff-desc">Catches errors before re-sending context to the model.</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- PRICING -->
+<section class="section" id="pricing" style="text-align:center">
+  <div class="reveal"><div class="s-eyebrow" style="text-align:center">Pricing</div></div>
+  <div class="reveal reveal-d1"><h2 class="s-title" style="text-align:center">One price.<br>No markup on usage.</h2></div>
+  <div class="pricing-wrap">
+    <div class="price-card reveal reveal-d2">
+      <div class="price-num">$5</div>
+      <div class="price-period">per month · flat</div>
+      <div class="price-divider"></div>
+      <ul class="price-list">
+        <li><span class="price-check"></span>Unlimited conversations</li>
+        <li><span class="price-check"></span>All output modes</li>
+        <li><span class="price-check"></span>Local context storage + encryption</li>
+        <li><span class="price-check"></span>Token savings dashboard</li>
+        <li><span class="price-check"></span>Any LLM via BYOK</li>
+        <li><span class="price-check"></span>Browser extension <span style="font-family:var(--mono);font-size:10px;color:#555;margin-left:auto">soon</span></li>
+      </ul>
+      <button class="price-cta" onclick="scrollToWaitlist()">Join the waitlist</button>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- FINAL CTA -->
+<section id="final-cta">
+  <h2 class="final-title reveal">Stop burning tokens on<br>context you'll never need.</h2>
+  <p class="final-sub reveal reveal-d1">Early access is limited. Be first.</p>
+  <div class="final-form reveal reveal-d2" id="final-form">
+    <input class="hero-input" id="final-email" type="email" name="email" placeholder="your@email.com" autocomplete="email" style="width:280px"/>
+    <button class="hero-cta" onclick="finalSubmit()">Get early access</button>
+  </div>
+  <div class="final-success" id="final-success">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#444" stroke-width="1.2"/><path d="M4.5 7l2 2 3-3" stroke="#888" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    You're on the list. We'll be in touch.
+  </div>
+  <p class="hero-micro reveal reveal-d3" id="final-micro" style="margin-top:16px">No credit card · $5/mo at launch · BYOK</p>
+</section>
+
+<!-- DISCLAIMER -->
+<div style="text-align:center;padding:32px 48px 0;max-width:600px;margin:0 auto">
+  <p style="font-size:11px;color:#444;font-family:var(--mono);line-height:1.7">Sift works best with: multi-turn coding workflows, agentic systems, extended sessions.<br>Not for single-turn queries or short chats.</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="#333" stroke-width="1.5"/><path d="M6 7h8M7.5 10h5M9 13h2" stroke="#333" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Sift
+  </div>
+  <div class="foot-tagline">The 2% Context Filter</div>
+  <div class="foot-copy">© 2026</div>
+</footer>
+
+<script>
+// ── NAV ──────────────────────────────────────────────────────────────────────
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 30), {passive:true});
+
+// ── REVEALS ───────────────────────────────────────────────────────────────────
+const revealObs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); }});
+}, {threshold:0.12, rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+// ── COUNTERS ──────────────────────────────────────────────────────────────────
+function animateCount(el, target, prefix='', suffix='', duration=1400, rush=false) {
+  const start = performance.now();
+  const update = (now) => {
+    const p = Math.min((now - start) / duration, 1);
+    const ease = rush ? Math.pow(p, 0.4) : 1 - Math.pow(1 - p, 3);
+    el.textContent = prefix + Math.round(ease * target) + suffix;
+    if (p < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    const target = +el.dataset.target;
+    const suffix = el.dataset.suffix || '';
+    const prefix = el.dataset.prefix || '';
+    const rush = !!el.dataset.rush;
+    const duration = rush ? 900 : 1400;
+    animateCount(el, target, prefix, suffix, duration, rush);
+    counterObs.unobserve(el);
+  });
+}, {threshold:0.5});
+document.querySelectorAll('[data-target]').forEach(el => counterObs.observe(el));
+
+// ── TOKEN BAR ─────────────────────────────────────────────────────────────────
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    document.getElementById('token-bar-fill').style.width = '98%';
+    barObs.unobserve(e.target);
+  });
+}, {threshold:0.5});
+barObs.observe(document.getElementById('token-bar-fill'));
+
+// ── HOW IT WORKS STICKY ───────────────────────────────────────────────────────
+const hiwOuter = document.querySelector('.hiw-outer');
+const s0 = document.getElementById('hiw-s0');
+const s1 = document.getElementById('hiw-s1');
+const s2 = document.getElementById('hiw-s2');
+const s3 = document.getElementById('hiw-s3');
+const s4 = document.getElementById('hiw-s4');
+const s5 = document.getElementById('hiw-s5');
+const prog = document.getElementById('hiw-prog');
+
+const pipeNodes = [0,1,2,3,4,5].map(i => document.getElementById('p'+i));
+const pipeConns = [0,1,2,3,4].map(i => document.getElementById('pc'+i));
+
+function setPipe(step) {
+  pipeNodes.forEach((n,i) => { n.classList.remove('lit','highlight'); pipeConns[i]?.classList.remove('lit'); });
+  const stages = [
+    [[], [0]],
+    [[0], [1]],
+    [[0,1], [2]],
+    [[0,1,2], [3]],
+    [[0,1,2,3], [4]],
+    [[0,1,2,3,4],[5]]
+  ];
+  const [lit, highlight] = stages[Math.min(step, 5)];
+  lit.forEach(i => { pipeNodes[i].classList.add('lit'); if(i<5) pipeConns[i].classList.add('lit'); });
+  highlight.forEach(i => pipeNodes[i].classList.add('highlight'));
+}
+
+window.addEventListener('scroll', () => {
+  if (!hiwOuter) return;
+  const rect = hiwOuter.getBoundingClientRect();
+  const scrollable = rect.height - window.innerHeight;
+  const progress = Math.max(0, Math.min(1, -rect.top / scrollable));
+
+  prog.style.height = (progress * 100) + '%';
+
+  [s0,s1,s2,s3,s4,s5].forEach(s => s.classList.remove('active'));
+  if (progress < 0.1) { s0.classList.add('active'); setPipe(0); }
+  else if (progress < 0.28) { s1.classList.add('active'); setPipe(1); }
+  else if (progress < 0.46) { s2.classList.add('active'); setPipe(2); }
+  else if (progress < 0.64) { s3.classList.add('active'); setPipe(3); }
+  else if (progress < 0.82) { s4.classList.add('active'); setPipe(4); }
+  else { s5.classList.add('active'); setPipe(5); }
+}, {passive:true});
+
+s0.classList.add('active');
+setPipe(0);
+
+// ── PARALLAX BLOBS ────────────────────────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const y = scrollY;
+  const b1 = document.querySelector('.blob-1');
+  const b2 = document.querySelector('.blob-2');
+  if (b1) b1.style.transform = `translate(0, ${y * 0.15}px)`;
+  if (b2) b2.style.transform = `translate(0, ${-y * 0.1}px)`;
+}, {passive:true});
+
+// ── HERO SCROLL FADE ──────────────────────────────────────────────────────────
+const heroContent = document.querySelector('#hero');
+window.addEventListener('scroll', () => {
+  const p = Math.min(scrollY / (window.innerHeight * 0.7), 1);
+  const ease = 1 - Math.pow(1 - p, 2);
+  heroContent.style.opacity = 1 - ease * 0.85;
+  heroContent.style.transform = `scale(${1 - ease * 0.03})`;
+}, {passive:true});
+
+// ── MOUSE SPOTLIGHT ───────────────────────────────────────────────────────────
+const heroEl = document.getElementById('hero');
+heroEl.addEventListener('mousemove', (e) => {
+  const r = heroEl.getBoundingClientRect();
+  heroEl.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  heroEl.style.setProperty('--my', (e.clientY - r.top) + 'px');
+}, {passive:true});
+
+// ── MAGNETIC BUTTON ───────────────────────────────────────────────────────────
+const ctaBtn = document.querySelector('.hero-cta');
+if (ctaBtn) {
+  const RADIUS = 80;
+  document.addEventListener('mousemove', (e) => {
+    const r = ctaBtn.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < RADIUS) {
+      const strength = (RADIUS - dist) / RADIUS;
+      ctaBtn.style.transform = `translate(${dx * strength * 0.35}px, ${dy * strength * 0.35}px) scale(1.02)`;
+    } else {
+      ctaBtn.style.transform = 'translate(0,0) scale(1)';
+    }
+  }, {passive:true});
+}
+
+// ── DIGITAL BRAIN ─────────────────────────────────────────────────────────────
+(function() {
+  const NODES = [
+    {type:'memory',text:'User prefers dark mode outputs',label:'Memory'},
+    {type:'rule',text:'Always use shadcn for UI components',label:'Rule'},
+    {type:'project',text:'Sift — waitlist landing page',label:'Context'},
+    {type:'rule',text:'Use 21st.dev for animations',label:'Rule'},
+    {type:'memory',text:'Prefers concise, no-filler responses',label:'Memory'},
+    {type:'rule',text:'Never use class components',label:'Rule'},
+    {type:'project',text:'API structure — REST with Hono',label:'Context'},
+    {type:'memory',text:'User always works in TypeScript',label:'Memory'},
+    {type:'rule',text:'Always use Tailwind, never CSS-in-JS',label:'Rule'},
+    {type:'project',text:'Sift — app prototype',label:'Context'},
+    {type:'memory',text:'Prefers Vercel for deployment',label:'Memory'},
+    {type:'rule',text:'Use Zod for all validation',label:'Rule'},
+    {type:'memory',text:'Avoid verbose explanations',label:'Memory'},
+    {type:'project',text:'Component library — Radix base',label:'Context'},
+    {type:'rule',text:'Prefer Server Components by default',label:'Rule'},
+    {type:'memory',text:'Use pnpm, not npm',label:'Memory'},
+    {type:'project',text:'Design system — dark mono palette',label:'Context'},
+    {type:'rule',text:'Always add loading + error states',label:'Rule'},
+    {type:'memory',text:'Prefers minimal comments in code',label:'Memory'},
+    {type:'project',text:'Sift — context engine v2',label:'Context'},
+    {type:'rule',text:'Never inline styles in JSX',label:'Rule'},
+    {type:'memory',text:'Output should be copy-paste ready',label:'Memory'},
+    {type:'rule',text:'Use React Query for data fetching',label:'Rule'},
+    {type:'project',text:'Auth layer — Clerk integration',label:'Context'},
+    {type:'memory',text:'Prefers edge runtime where possible',label:'Memory'},
+    {type:'rule',text:'Always type API responses with Zod',label:'Rule'},
+    {type:'project',text:'Sift — browser extension',label:'Context'},
+    {type:'memory',text:'No lorem ipsum — real copy only',label:'Memory'},
+    {type:'rule',text:'Prefer named exports over default',label:'Rule'},
+    {type:'project',text:'Token dashboard — real-time',label:'Context'},
+    {type:'memory',text:'Favors monorepo with Turborepo',label:'Memory'},
+    {type:'rule',text:'Use tRPC for internal APIs',label:'Rule'},
+    {type:'project',text:'Sift — semantic search module',label:'Context'},
+    {type:'memory',text:'Prefers Drizzle over Prisma',label:'Memory'},
+    {type:'rule',text:'Commits must be atomic and small',label:'Rule'},
+    {type:'project',text:'Embedding pipeline — MiniLM',label:'Context'},
+    {type:'memory',text:'Always ship behind feature flags',label:'Memory'},
+    {type:'rule',text:'No magic numbers — use constants',label:'Rule'},
+    {type:'project',text:'Sift — pricing page',label:'Context'},
+    {type:'memory',text:'Prefers Biome over ESLint',label:'Memory'},
+    {type:'rule',text:'Use vitest, not jest',label:'Rule'},
+    {type:'project',text:'Context compression algorithm',label:'Context'},
+    {type:'memory',text:'Error messages must be actionable',label:'Memory'},
+    {type:'rule',text:'Always debounce search inputs',label:'Rule'},
+    {type:'project',text:'Sift — onboarding flow',label:'Context'},
+    {type:'memory',text:'Prefer flat component trees',label:'Memory'},
+    {type:'rule',text:'Use nuqs for URL state',label:'Rule'},
+    {type:'project',text:'Vector similarity scoring',label:'Context'},
+    {type:'memory',text:'Accessibility: focus-visible always',label:'Memory'},
+    {type:'rule',text:'No barrel exports in /components',label:'Rule'},
+    {type:'project',text:'Sift — token counter widget',label:'Context'},
+    {type:'memory',text:'CI must pass before merge',label:'Memory'},
+    {type:'rule',text:'Prefer const assertions over enums',label:'Rule'},
+    {type:'project',text:'IndexedDB schema v3',label:'Context'},
+    {type:'memory',text:'Stripe webhook idempotency keys',label:'Memory'},
+    {type:'rule',text:'Use satisfies over type assertions',label:'Rule'},
+    {type:'project',text:'Sift — settings panel',label:'Context'},
+    {type:'memory',text:'OpenAI key stored in env only',label:'Memory'},
+    {type:'rule',text:'Split code at route boundaries',label:'Rule'},
+    {type:'project',text:'Prompt assembly pipeline',label:'Context'},
+    {type:'memory',text:'Telemetry opt-in only, never default',label:'Memory'},
+    {type:'rule',text:'Use next/image for all images',label:'Rule'},
+    {type:'project',text:'Sift — API key manager',label:'Context'},
+    {type:'memory',text:'Fonts loaded via next/font only',label:'Memory'},
+    {type:'rule',text:'Prefer controlled inputs in forms',label:'Rule'},
+    {type:'project',text:'Sift — session replay',label:'Context'},
+    {type:'memory',text:'Rate limit all public endpoints',label:'Memory'},
+    {type:'rule',text:'Use Resend for transactional email',label:'Rule'},
+    {type:'project',text:'Prefix caching strategy',label:'Context'},
+    {type:'memory',text:'Prefers Neon for Postgres',label:'Memory'},
+    {type:'rule',text:'Validate env vars at startup',label:'Rule'},
+    {type:'project',text:'Sift — diff viewer',label:'Context'},
+    {type:'memory',text:'Feature branches, no long-lived forks',label:'Memory'},
+    {type:'rule',text:'Use @t3-oss/env for env schema',label:'Rule'},
+    {type:'project',text:'Token savings calculator',label:'Context'},
+    {type:'memory',text:'Prefers Upstash for Redis',label:'Memory'},
+    {type:'rule',text:'No API keys in client bundle',label:'Rule'},
+    {type:'project',text:'Sift — graph snapshot export',label:'Context'},
+    {type:'memory',text:'User codes 11pm–3am most nights',label:'Memory'},
+    {type:'rule',text:'Always paginate list endpoints',label:'Rule'},
+    {type:'project',text:'Sift — mobile PWA',label:'Context'},
+    {type:'memory',text:'Prefer streaming responses',label:'Memory'},
+    {type:'rule',text:'Use Web Crypto for hashing',label:'Rule'},
+    {type:'project',text:'Cost estimator module',label:'Context'},
+    {type:'memory',text:'Tailwind config extends, never replaces',label:'Memory'},
+    {type:'rule',text:'Catch errors at component boundary',label:'Rule'},
+    {type:'project',text:'Sift — Gemini connector',label:'Context'},
+    {type:'memory',text:'Max component size: 200 lines',label:'Memory'},
+    {type:'rule',text:'Use suspense for async data',label:'Rule'},
+    {type:'project',text:'Context scoring heuristics',label:'Context'},
+    {type:'memory',text:'Avoid third-party auth SDKs client-side',label:'Memory'},
+    {type:'rule',text:'Prefer URLSearchParams over qs',label:'Rule'},
+    {type:'project',text:'Sift — OpenAI connector',label:'Context'},
+    {type:'memory',text:'Prefers bun over node for scripts',label:'Memory'},
+    {type:'rule',text:'Use crypto.randomUUID() not nanoid',label:'Rule'},
+    {type:'project',text:'Sift — context diff tool',label:'Context'},
+    {type:'memory',text:'No barrel index.ts files',label:'Memory'},
+    {type:'rule',text:'Prefer fetch over axios',label:'Rule'},
+    {type:'project',text:'Local embedding cache',label:'Context'},
+    {type:'memory',text:'Deploys via GitHub Actions',label:'Memory'},
+    {type:'rule',text:'Use ReadableStream for large responses',label:'Rule'},
+    {type:'project',text:'Sift — prompt template engine',label:'Context'},
+    {type:'memory',text:'Stores secrets in Vercel env vars',label:'Memory'},
+    {type:'rule',text:'Always handle AbortSignal in fetches',label:'Rule'},
+    {type:'project',text:'Sift — usage analytics',label:'Context'},
+    {type:'memory',text:'Prefers ECDSA over RSA for signing',label:'Memory'},
+    {type:'rule',text:'Validate webhook signatures server-side',label:'Rule'},
+    {type:'project',text:'Sift — export / import graph',label:'Context'},
+    {type:'memory',text:'Uses Cloudflare for DNS + CDN',label:'Memory'},
+    {type:'rule',text:'Never store JWTs in localStorage',label:'Rule'},
+    {type:'project',text:'Semantic deduplication pass',label:'Context'},
+    {type:'memory',text:'Monitors with Sentry on frontend',label:'Memory'},
+    {type:'rule',text:'Report errors to Sentry in catch blocks',label:'Rule'},
+    {type:'project',text:'Sift — context window meter',label:'Context'},
+    {type:'memory',text:'Prefers Posthog for product analytics',label:'Memory'},
+    {type:'rule',text:'Track events at user action boundary',label:'Rule'},
+    {type:'project',text:'Sift — dark/light toggle',label:'Context'},
+    {type:'memory',text:'A/B tests behind Posthog flags',label:'Memory'},
+    {type:'rule',text:'Use Radix Dialog not custom modals',label:'Rule'},
+    {type:'project',text:'Sift — chat replay mode',label:'Context'},
+    {type:'memory',text:'Prefers server actions for mutations',label:'Memory'},
+    {type:'rule',text:'Optimistic UI with useOptimistic',label:'Rule'},
+    {type:'project',text:'Sift — annotation layer',label:'Context'},
+    {type:'memory',text:'Uses Playwright for e2e tests',label:'Memory'},
+    {type:'rule',text:'e2e tests run in CI only',label:'Rule'},
+    {type:'project',text:'Sift — bulk import tool',label:'Context'},
+    {type:'memory',text:'Prefer explicit over implicit returns',label:'Memory'},
+    {type:'rule',text:'No any type — use unknown + narrow',label:'Rule'},
+    {type:'project',text:'Relevance ranking v2',label:'Context'},
+    {type:'memory',text:'Whitespace preference: 2 spaces',label:'Memory'},
+    {type:'rule',text:'Trailing commas everywhere',label:'Rule'},
+    {type:'project',text:'Sift — node detail panel',label:'Context'},
+    {type:'memory',text:'Quotes: single in JS, double in JSX attrs',label:'Memory'},
+    {type:'rule',text:'Destructure props at component top',label:'Rule'},
+    {type:'project',text:'Sift — search overlay',label:'Context'},
+    {type:'memory',text:'Formats on save via Biome',label:'Memory'},
+    {type:'rule',text:'Use clsx for conditional classNames',label:'Rule'},
+    {type:'project',text:'Sift — keyboard shortcuts layer',label:'Context'},
+    {type:'memory',text:'Cmd+K opens command palette',label:'Memory'},
+    {type:'rule',text:'Register shortcuts via useHotkeys',label:'Rule'},
+    {type:'project',text:'Token budget estimator',label:'Context'},
+    {type:'memory',text:'User dislikes toast spam',label:'Memory'},
+    {type:'rule',text:'Show toasts only for errors + successes',label:'Rule'},
+    {type:'project',text:'Sift — history timeline',label:'Context'},
+    {type:'memory',text:'Prefers Sonner for toasts',label:'Memory'},
+    {type:'rule',text:'Dismiss toasts after 3s max',label:'Rule'},
+    {type:'project',text:'Sift — node pinning feature',label:'Context'},
+    {type:'memory',text:'Prefers Framer Motion over CSS for complex anim',label:'Memory'},
+    {type:'rule',text:'Animate layout changes with layout prop',label:'Rule'},
+    {type:'project',text:'Sift — graph zoom + pan',label:'Context'},
+    {type:'memory',text:'Scroll animations use IntersectionObserver',label:'Memory'},
+    {type:'rule',text:'Never block main thread with heavy compute',label:'Rule'},
+    {type:'project',text:'Web worker for embeddings',label:'Context'},
+    {type:'memory',text:'Embeddings computed in Web Worker',label:'Memory'},
+    {type:'rule',text:'Terminate workers after idle 60s',label:'Rule'},
+    {type:'project',text:'Sift — smart clipboard',label:'Context'},
+    {type:'memory',text:'Uses SharedArrayBuffer for worker comms',label:'Memory'},
+    {type:'rule',text:'Separate read and write DB connections',label:'Rule'},
+    {type:'project',text:'Sift — collaborative mode',label:'Context'},
+    {type:'memory',text:'Uses Yjs for CRDT collaboration',label:'Memory'},
+    {type:'rule',text:'Sync state via Yjs awareness protocol',label:'Rule'},
+    {type:'project',text:'Sift — graph merge tool',label:'Context'},
+    {type:'memory',text:'Prefers WASM for compute-heavy tasks',label:'Memory'},
+    {type:'rule',text:'Bundle WASM via vite-plugin-wasm',label:'Rule'},
+    {type:'project',text:'Sift — vector index builder',label:'Context'},
+    {type:'memory',text:'Uses transformers.js for local inference',label:'Memory'},
+    {type:'rule',text:'Load ML models lazily on first use',label:'Rule'},
+    {type:'project',text:'Sift — summarization pipeline',label:'Context'},
+    {type:'memory',text:'Summaries cached in IndexedDB',label:'Memory'},
+    {type:'rule',text:'Evict cache entries older than 30 days',label:'Rule'},
+    {type:'project',text:'Sift — memory graph GC',label:'Context'},
+    {type:'memory',text:'Prefers cursor-based pagination',label:'Memory'},
+    {type:'rule',text:'Return nextCursor null on last page',label:'Rule'},
+    {type:'project',text:'Sift — feed view',label:'Context'},
+    {type:'memory',text:'Likes infinite scroll on long lists',label:'Memory'},
+    {type:'rule',text:'Virtualize lists over 100 items with TanStack',label:'Rule'},
+    {type:'project',text:'Sift — bulk tag editor',label:'Context'},
+    {type:'memory',text:'Tag taxonomy: project / rule / memory / ref',label:'Memory'},
+    {type:'rule',text:'Tags must be lowercase slug format',label:'Rule'},
+    {type:'project',text:'Sift — graph filter panel',label:'Context'},
+    {type:'memory',text:'Graph filters persist to URL params',label:'Memory'},
+    {type:'rule',text:'URL state is source of truth for filters',label:'Rule'},
+    {type:'project',text:'Sift — share snapshot feature',label:'Context'},
+    {type:'memory',text:'Snapshots stored as signed blobs',label:'Memory'},
+    {type:'rule',text:'Sign snapshot URLs with HMAC-SHA256',label:'Rule'},
+    {type:'project',text:'Sift — public brain view',label:'Context'},
+    {type:'memory',text:'Public views are read-only, no auth',label:'Memory'},
+    {type:'rule',text:'Strip PII before generating public snapshot',label:'Rule'},
+    {type:'project',text:'PII detection module',label:'Context'},
+    {type:'memory',text:'Uses regex + NLP heuristics for PII',label:'Memory'},
+    {type:'rule',text:'Block save if PII confidence > 0.8',label:'Rule'},
+    {type:'project',text:'Sift — privacy audit log',label:'Context'},
+    {type:'memory',text:'Audit log stored append-only in IDB',label:'Memory'},
+    {type:'rule',text:'Log every external API call with hash',label:'Rule'},
+    {type:'project',text:'Sift — Anthropic connector',label:'Context'},
+    {type:'memory',text:'Claude used for summarization tasks',label:'Memory'},
+    {type:'rule',text:'Stream Claude responses via SSE',label:'Rule'},
+    {type:'project',text:'Sift — multi-model router',label:'Context'},
+    {type:'memory',text:'Routes to cheapest model that fits task',label:'Memory'},
+    {type:'rule',text:'Model selection logged for cost analysis',label:'Rule'},
+    {type:'project',text:'Cost breakdown dashboard',label:'Context'},
+    {type:'memory',text:'Shows cost per session in UI',label:'Memory'},
+    {type:'rule',text:'Budget alerts at 80% of monthly limit',label:'Rule'},
+    {type:'project',text:'Sift — budget guard',label:'Context'},
+    {type:'memory',text:'Hard stop at user-set token limit',label:'Memory'},
+    {type:'rule',text:'Never exceed budget without explicit confirm',label:'Rule'},
+    {type:'project',text:'Sift — prompt preview pane',label:'Context'},
+    {type:'memory',text:'Shows assembled prompt before send',label:'Memory'},
+    {type:'rule',text:'Diff view highlights injected context',label:'Rule'},
+    {type:'project',text:'Sift — inline edit mode',label:'Context'},
+    {type:'memory',text:'Inline edits update graph in real time',label:'Memory'},
+    {type:'rule',text:'Debounce graph updates 300ms',label:'Rule'},
+    {type:'project',text:'Sift — node merge tool',label:'Context'},
+    {type:'memory',text:'Auto-merges near-duplicate nodes',label:'Memory'},
+    {type:'rule',text:'Cosine similarity > 0.92 triggers merge prompt',label:'Rule'},
+    {type:'project',text:'Sift — cluster view',label:'Context'},
+    {type:'memory',text:'Clusters grouped by semantic topic',label:'Memory'},
+    {type:'rule',text:'K-means on embeddings for clustering',label:'Rule'},
+    {type:'project',text:'Sift — topic explorer',label:'Context'},
+    {type:'memory',text:'Topics shown as labelled hulls on graph',label:'Memory'},
+    {type:'rule',text:'Convex hull per cluster rendered as SVG path',label:'Rule'},
+    {type:'project',text:'Graph hull renderer',label:'Context'},
+    {type:'memory',text:'Hull opacity 8% so nodes visible through',label:'Memory'},
+    {type:'rule',text:'Hulls re-computed on graph layout change',label:'Rule'},
+    {type:'project',text:'Sift — layout engine v2',label:'Context'},
+  ];
+
+  function getNearestNeighbors(nodes, i, k) {
+    const a = nodes[i];
+    return nodes
+      .map((b, j) => ({j, d: j===i ? Infinity : Math.hypot(b.x-a.x, b.y-a.y)}))
+      .sort((x,y) => x.d - y.d)
+      .slice(0, k)
+      .map(x => x.j);
+  }
+
+  function init() {
+    const canvas = document.getElementById('brain-canvas');
+    const svg = document.getElementById('brain-svg');
+    const linkG = document.getElementById('brain-links');
+    const nodeG = document.getElementById('brain-node-group');
+    const tooltip = document.getElementById('brain-tooltip');
+    if (!canvas || !svg) return;
+
+    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    const n = NODES.length; // 300
+    // Scatter randomly within a circle — sqrt(random) gives uniform area distribution
+    const R_init = Math.min(W, H) * 0.43;
+    const nodes = NODES.map((d, i) => {
+      const angle = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * R_init;
+      return {
+        ...d, id: i,
+        x: W/2 + r * Math.cos(angle),
+        y: H/2 + r * Math.sin(angle),
+        vx:0, vy:0
+      };
+    });
+
+    const minDist = 16; // separation between dot centres
+    for (let iter = 0; iter < 120; iter++) {
+      const alpha = 1 - iter/120;
+      // Repulsion only — push overlapping nodes apart
+      for (let i = 0; i < n; i++) {
+        for (let j = i+1; j < n; j++) {
+          const a = nodes[i], b = nodes[j];
+          const dx = b.x-a.x, dy = b.y-a.y;
+          const dist = Math.sqrt(dx*dx+dy*dy) || 0.1;
+          if (dist < minDist) {
+            const f = (minDist - dist) / dist * 0.5 * alpha;
+            a.vx -= dx*f; a.vy -= dy*f;
+            b.vx += dx*f; b.vy += dy*f;
+          }
+        }
+      }
+      // Soft circular boundary — nudge nodes that drifted outside R_init back in
+      nodes.forEach(nd => {
+        const dx = nd.x - W/2, dy = nd.y - H/2;
+        const dist = Math.sqrt(dx*dx+dy*dy) || 0.1;
+        if (dist > R_init) {
+          const over = dist - R_init;
+          nd.vx -= (dx/dist) * over * 0.3 * alpha;
+          nd.vy -= (dy/dist) * over * 0.3 * alpha;
+        }
+        nd.x += nd.vx; nd.y += nd.vy;
+        nd.vx *= 0.6; nd.vy *= 0.6;
+        const pad = 10;
+        nd.x = Math.max(pad, Math.min(W-pad, nd.x));
+        nd.y = Math.max(pad, Math.min(H-pad, nd.y));
+      });
+    }
+
+    const neighborsMap = nodes.map((_, i) => getNearestNeighbors(nodes, i, 5));
+
+    // Bidirectional: if A→B exists, add B→A so both nodes always share an edge
+    const bidSets = Array.from({length: n}, () => new Set());
+    for (let i = 0; i < n; i++) {
+      neighborsMap[i].forEach(j => { bidSets[i].add(j); bidSets[j].add(i); });
+    }
+    const bidNeighbors = bidSets.map(s => [...s]);
+
+    let pinnedNode = null;
+
+    const edgeEls = {};
+    nodes.forEach((nd, i) => {
+      neighborsMap[i].forEach(j => {
+        const key = [Math.min(i,j), Math.max(i,j)].join('-');
+        if (edgeEls[key]) return;
+        const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1', nd.x); line.setAttribute('y1', nd.y);
+        line.setAttribute('x2', nodes[j].x); line.setAttribute('y2', nodes[j].y);
+        line.setAttribute('stroke', 'rgba(255,255,255,0.9)');
+        line.setAttribute('stroke-width', '0.6');
+        line.style.opacity = '0.15';
+        line.style.transition = 'none';
+        edgeEls[key] = line;
+        linkG.appendChild(line);
+      });
+    });
+
+    const nodeEls = [];
+    nodes.forEach((nd, i) => {
+      const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+      g.style.cursor = 'pointer';
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      circle.setAttribute('cx', nd.x); circle.setAttribute('cy', nd.y);
+      circle.setAttribute('r', 3);
+      circle.setAttribute('fill', '#ffffff');
+      circle.style.filter = 'drop-shadow(0 0 3px rgba(255,255,255,0.45))';
+      circle.style.transition = 'none';
+      circle.setAttribute('opacity', '0.7');
+      g.appendChild(circle);
+      nodeEls.push({g, circle, nd});
+      nodeG.appendChild(g);
+
+      g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (pinnedNode === i) {
+          pinnedNode = null;
+          clearHover();
+          tooltip.classList.remove('show');
+        } else {
+          pinnedNode = i;
+          setHover(i);
+          showTooltip(nd, nd.x, nd.y, W, H);
+        }
+      });
+    });
+
+    // Refresh rect on resize AND scroll — stale rect after scroll causes wrong node selection
+    let svgRect = svg.getBoundingClientRect();
+    window.addEventListener('resize', () => { svgRect = svg.getBoundingClientRect(); });
+    window.addEventListener('scroll', () => { svgRect = svg.getBoundingClientRect(); }, {passive:true});
+
+    // Cache edge array so Object.values isn't rebuilt every call
+    const edgeVals = Object.values(edgeEls);
+
+    // Proximity hover
+    const HIT_R = 22; // invisible hit radius per node (SVG units)
+    let lastHovered = -1;
+    svg.addEventListener('mousemove', (e) => {
+      if (pinnedNode !== null) return;
+      const mx = (e.clientX - svgRect.left) * (W / svgRect.width);
+      const my = (e.clientY - svgRect.top) * (H / svgRect.height);
+      let closest = -1, closestD = HIT_R * HIT_R;
+      for (let i = 0; i < n; i++) {
+        const nd = nodes[i];
+        const dx = nd.x - mx, dy = nd.y - my;
+        const d = dx*dx + dy*dy;
+        if (d < closestD) { closestD = d; closest = i; }
+      }
+      if (closest === lastHovered) return;
+      lastHovered = closest;
+      if (closest === -1) {
+        edgeVals.forEach(l => l.style.transition = 'opacity 0.35s');
+        nodeEls.forEach(({circle}) => circle.style.transition = 'opacity 0.35s, filter 0.35s');
+        tooltip.classList.remove('show');
+        clearHover();
+      } else {
+        setHover(closest);
+        showTooltip(nodes[closest], nodes[closest].x, nodes[closest].y, W, H);
+      }
+    });
+
+    svg.addEventListener('mouseleave', () => {
+      if (pinnedNode !== null) return;
+      lastHovered = -1;
+      edgeVals.forEach(l => l.style.transition = 'opacity 0.35s');
+      nodeEls.forEach(({circle}) => circle.style.transition = 'opacity 0.35s, filter 0.35s');
+      tooltip.classList.remove('show');
+      clearHover();
+    });
+
+    let prevConnected = new Set();
+    let prevCenter = -1;
+    let hoverActive = false;
+
+    function setHover(i) {
+      const connected = new Set([i, ...bidNeighbors[i]]);
+
+      if (!hoverActive) {
+        hoverActive = true;
+        nodeEls.forEach(({circle}) => {
+          circle.style.transition = 'none';
+          circle.setAttribute('opacity', '0.2');
+          circle.setAttribute('r', '3');
+          circle.style.filter = 'none';
+        });
+        edgeVals.forEach(l => { l.style.transition = 'none'; l.style.opacity = '0.05'; });
+      } else {
+        prevConnected.forEach(j => {
+          if (!connected.has(j)) {
+            const {circle} = nodeEls[j];
+            circle.setAttribute('opacity', '0.2');
+            circle.setAttribute('r', '3');
+            circle.style.filter = 'none';
+          }
+        });
+        bidNeighbors[prevCenter].forEach(j => {
+          const key = [Math.min(prevCenter,j), Math.max(prevCenter,j)].join('-');
+          if (edgeEls[key]) edgeEls[key].style.opacity = '0.05';
+        });
+        if (prevCenter !== -1 && prevCenter !== i) {
+          const {circle} = nodeEls[prevCenter];
+          if (connected.has(prevCenter)) {
+            circle.setAttribute('r', '4');
+            circle.style.filter = 'drop-shadow(0 0 6px rgba(255,255,255,0.6))';
+          } else {
+            circle.setAttribute('opacity', '0.2');
+            circle.setAttribute('r', '3');
+            circle.style.filter = 'none';
+          }
+        }
+      }
+
+      const {circle: cc} = nodeEls[i];
+      cc.setAttribute('opacity', '1');
+      cc.setAttribute('r', '5');
+      cc.style.filter = 'drop-shadow(0 0 10px rgba(255,255,255,0.9))';
+
+      bidNeighbors[i].forEach(j => {
+        if (j !== prevCenter) {
+          const {circle} = nodeEls[j];
+          circle.setAttribute('opacity', '1');
+          circle.setAttribute('r', '4');
+          circle.style.filter = 'drop-shadow(0 0 6px rgba(255,255,255,0.6))';
+        }
+        const key = [Math.min(i,j), Math.max(i,j)].join('-');
+        if (edgeEls[key]) edgeEls[key].style.opacity = '0.55';
+      });
+
+      prevConnected = connected;
+      prevCenter = i;
+    }
+
+    function clearHover() {
+      hoverActive = false;
+      prevConnected = new Set();
+      prevCenter = -1;
+      edgeVals.forEach(l => l.style.opacity = '0.15');
+      nodeEls.forEach(({circle}) => {
+        circle.setAttribute('opacity','0.7');
+        circle.setAttribute('r','3');
+        circle.style.filter = 'drop-shadow(0 0 3px rgba(255,255,255,0.45))';
+      });
+    }
+
+    function showTooltip(nd, nx, ny, W, H) {
+      let tx = nx + 16, ty = ny - 10;
+      if (tx + 240 > W) tx = nx - 250;
+      if (ty + 70 > H) ty = ny - 70;
+      if (ty < 0) ty = ny + 16;
+      tooltip.style.left = tx + 'px';
+      tooltip.style.top = ty + 'px';
+      tooltip.innerHTML = `<div class="brain-tooltip-type" style="color:#888">${nd.label}</div>${nd.text}`;
+      tooltip.classList.add('show');
+    }
+
+    canvas.addEventListener('click', () => {
+      if (pinnedNode !== null) {
+        pinnedNode = null;
+        clearHover();
+        tooltip.classList.remove('show');
+      }
+    });
+  }
+
+  const brainWrap = document.querySelector('.brain-wrap');
+  if (brainWrap) {
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) { setTimeout(init, 200); obs.disconnect(); }
+    }, {threshold:0.15});
+    obs.observe(brainWrap);
+  }
+})();
+
+// ── FORM HANDLERS ─────────────────────────────────────────────────────────────
+const FORMSPREE = 'https://formspree.io/f/xvzddyby';
+
+async function heroSubmit() {
+  const input = document.getElementById('hero-email');
+  const v = input.value.trim();
+  if (!v || !v.includes('@')) { input.focus(); return; }
+  try {
+    const res = await fetch(FORMSPREE, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({email: v})
+    });
+    if (!res.ok) throw new Error();
+  } catch {}
+  input.value = '';
+  document.getElementById('hero-form').style.display = 'none';
+  document.getElementById('hero-micro').style.display = 'none';
+  document.getElementById('hero-success').classList.add('show');
+}
+
+async function finalSubmit() {
+  const input = document.getElementById('final-email');
+  const v = input.value.trim();
+  if (!v || !v.includes('@')) { input.focus(); return; }
+  try {
+    const res = await fetch(FORMSPREE, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({email: v})
+    });
+    if (!res.ok) throw new Error();
+  } catch {}
+  input.value = '';
+  document.getElementById('final-form').style.display = 'none';
+  document.getElementById('final-micro').style.display = 'none';
+  document.getElementById('final-success').classList.add('show');
+}
+function scrollToWaitlist() { document.getElementById('final-cta').scrollIntoView({behavior:'smooth'}); }
+
+document.getElementById('hero-email').addEventListener('keydown', e => { if(e.key==='Enter') heroSubmit(); });
+document.getElementById('final-email').addEventListener('keydown', e => { if(e.key==='Enter') finalSubmit(); });
+</script>
+</body>
+</html>
