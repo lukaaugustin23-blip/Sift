@@ -17,7 +17,7 @@ struct DashboardView: View {
     // MARK: Processing
     @State private var isProcessing     = false
     @State private var processingError: String? = nil
-    @State private var showRoast        = false
+    @State private var activeScore:     DayScore? = nil
 
     // MARK: Derived data
     private var profile:    UserProfile? { profiles.first }
@@ -42,7 +42,7 @@ struct DashboardView: View {
     }
 
     private var roastButtonEnabled: Bool {
-        !isProcessing && !RateLimitService.shared.hasCalledToday
+        !isProcessing && (!RateLimitService.shared.hasCalledToday || todayScore != nil)
     }
 
     var body: some View {
@@ -119,6 +119,32 @@ struct DashboardView: View {
                     .presentationCornerRadius(DS.Radius.card)
             }
         }
+        .fullScreenCover(item: $activeScore) { score in
+            if let profile = profile {
+                RoastView(
+                    score:   score,
+                    profile: profile,
+                    streak:  currentStreak
+                )
+            }
+        }
+    }
+
+    // MARK: - Current streak
+
+    private var currentStreak: Int {
+        var streak = 0
+        let cal = Calendar.current
+        var day = cal.startOfDay(for: Date())
+        for _ in 0..<365 {
+            if recentScores.contains(where: { cal.isDate($0.date, inSameDayAs: day) && $0.overall >= 50 }) {
+                streak += 1
+                day = cal.date(byAdding: .day, value: -1, to: day)!
+            } else {
+                break
+            }
+        }
+        return streak
     }
 
     // MARK: - Greeting header
@@ -287,15 +313,21 @@ struct DashboardView: View {
     // MARK: - Process day + generate roast
 
     private func processAndRoast() async {
-        guard let log = todayLog, let profile = profile else { return }
-        guard roastButtonEnabled else { return }
+        guard let profile = profile else { return }
 
-        await MainActor.run {
-            isProcessing = true
-            processingError = nil
+        // Already have a score — just show it
+        if let existing = todayScore {
+            activeScore = existing
+            return
         }
 
-        defer { Task { @MainActor in isProcessing = false } }
+        guard let log = todayLog else { return }
+        guard roastButtonEnabled else { return }
+
+        isProcessing = true
+        processingError = nil
+
+        defer { isProcessing = false }
 
         // 1. Fetch health data
         let health = await HealthKitService.shared.fetchAllHealthData(for: log.date)
@@ -305,30 +337,24 @@ struct DashboardView: View {
         let score = ScoringService.shared.calculateScore(
             health: health, screen: screen, log: log, profile: profile
         )
-        await MainActor.run { modelContext.insert(score) }
+        modelContext.insert(score)
 
-        // 3. Roast via Groq (if rate limit allows)
+        // 3. Roast via Groq
         if RateLimitService.shared.canCallClaudeToday() {
             do {
                 let result = try await ClaudeService.shared.generateRoast(
                     score: score, log: log, profile: profile
                 )
-                await MainActor.run {
-                    score.roast = result.roast
-                    score.tip   = result.tip
-                    RateLimitService.shared.markClaudeCalled()
-                }
+                score.roast = result.roast
+                score.tip   = result.tip
+                RateLimitService.shared.markClaudeCalled()
             } catch {
-                await MainActor.run {
-                    processingError = "Roast failed: \(error.localizedDescription)"
-                }
+                processingError = "Roast failed: \(error.localizedDescription)"
             }
         }
 
-        await MainActor.run {
-            try? modelContext.save()
-            showRoast = true
-        }
+        try? modelContext.save()
+        activeScore = score
     }
 
     // MARK: - Haptics
