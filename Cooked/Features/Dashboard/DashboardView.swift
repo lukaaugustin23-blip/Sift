@@ -13,12 +13,19 @@ struct DashboardView: View {
     @State private var appeared       = false
 
     private var profile:    UserProfile? { profiles.first }
-    private var todayScore: DayScore?    {
+    private var todayScore: DayScore? {
         recentScores.first.flatMap {
             Calendar.current.isDateInToday($0.date) ? $0 : nil
         }
     }
-
+    private var displayScore: Int {
+        if let s = todayScore { return s.overall }
+        if let d = screenData, d.totalTime > 0 { return Int(d.productiveRatio * 100) }
+        return 0
+    }
+    private var hasScore: Bool {
+        todayScore != nil || (screenData?.totalTime ?? 0) > 0
+    }
     private var greeting: String {
         switch Calendar.current.component(.hour, from: Date()) {
         case 5..<12:  return "Good morning,"
@@ -27,7 +34,6 @@ struct DashboardView: View {
         default:      return "Still up,"
         }
     }
-
     private var streak: Int {
         var s = 0; let cal = Calendar.current
         var day = cal.startOfDay(for: Date())
@@ -40,55 +46,67 @@ struct DashboardView: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                DS.Color.bg.ignoresSafeArea()
+        ZStack {
+            Color(hex: "F5F1E8").ignoresSafeArea()
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: DS.Space.lg) {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
 
-                        // ── Top spacer (safe area) ─────────────────────────
-                        Color.clear.frame(height: geo.safeAreaInsets.top + DS.Space.md)
+                    // ── Greeting + name ───────────────────────────────
+                    headerSection
+                        .padding(.horizontal, DS.Space.lg)
+                        .padding(.top, DS.Space.lg)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 20)
 
-                        // ── Greeting ───────────────────────────────────────
-                        greetingSection
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 16)
+                    Spacer().frame(height: DS.Space.xl)
 
-                        // ── Score ring ─────────────────────────────────────
-                        scoreCard(geo: geo)
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 24)
+                    // ── Score block ────────────────────────────────────
+                    scoreBlock
+                        .padding(.horizontal, DS.Space.lg)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 28)
 
-                        // ── Stats ──────────────────────────────────────────
-                        if let data = screenData ?? todayScoreAsData {
-                            statsRow(data: data)
-                                .opacity(appeared ? 1 : 0)
-                                .offset(y: appeared ? 0 : 32)
-                        }
+                    Spacer().frame(height: DS.Space.xl)
 
-                        // ── Error ──────────────────────────────────────────
-                        if let err = processingErr {
-                            Text(err)
-                                .font(DS.Font.body(13))
-                                .foregroundStyle(DS.Color.danger)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal)
-                        }
+                    // ── Action button ──────────────────────────────────
+                    actionButton
+                        .padding(.horizontal, DS.Space.lg)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 32)
 
-                        // ── Streak ─────────────────────────────────────────
-                        streakView
-                            .opacity(appeared ? 1 : 0)
+                    Spacer().frame(height: DS.Space.lg)
 
-                        Spacer(minLength: DS.Space.xxl)
+                    // ── Stats row ──────────────────────────────────────
+                    statsRow
+                        .padding(.horizontal, DS.Space.lg)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 36)
+
+                    Spacer().frame(height: DS.Space.md)
+
+                    // ── Streak ─────────────────────────────────────────
+                    streakRow
+                        .padding(.horizontal, DS.Space.lg)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 40)
+
+                    // ── Error ──────────────────────────────────────────
+                    if let err = processingErr {
+                        Text(err)
+                            .font(DS.Font.body(13))
+                            .foregroundStyle(DS.Color.danger)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, DS.Space.lg)
+                            .padding(.top, DS.Space.md)
                     }
-                    .padding(.horizontal, DS.Space.lg)
+
+                    Spacer().frame(height: DS.Space.xxl)
                 }
             }
-            .ignoresSafeArea(edges: .top)
         }
         .onAppear {
-            withAnimation(DS.Animation.cardEntrance) { appeared = true }
+            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { appeared = true }
             refreshScreenData()
         }
         .fullScreenCover(item: $activeScore) { score in
@@ -98,15 +116,17 @@ struct DashboardView: View {
         }
     }
 
-    // MARK: - Greeting
+    // MARK: - Header
 
-    private var greetingSection: some View {
+    private var headerSection: some View {
         VStack(alignment: .leading, spacing: DS.Space.xs) {
             Text(greeting.uppercased())
-                .labelStyle()
+                .font(.spaceMono(9))
                 .foregroundStyle(DS.Color.inkSecondary)
+                .tracking(4)
+
             Text(profile?.name.isEmpty == false ? profile!.name : "You")
-                .font(DS.Font.hero(44))
+                .font(DS.Font.hero(40))
                 .foregroundStyle(DS.Color.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -114,82 +134,109 @@ struct DashboardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Score card
+    // MARK: - Score block
 
-    @ViewBuilder
-    private func scoreCard(geo: GeometryProxy) -> some View {
-        let ringSize = min(geo.size.width * 0.52, 200)
-        let fill     = todayScore.map { Double($0.overall) / 100 } ?? (screenData?.productiveRatio)
-
-        VStack(spacing: DS.Space.lg) {
-            // Ring
-            ZStack {
-                ScoreRing(fill: fill ?? 0, size: ringSize, hasData: fill != nil)
-
-                VStack(spacing: DS.Space.xs) {
-                    if let score = todayScore {
-                        Text("\(score.overall)")
-                            .font(DS.Font.display(ringSize * 0.34))
+    private var scoreBlock: some View {
+        HStack(alignment: .bottom, spacing: DS.Space.lg) {
+            // Giant score number
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
+                if hasScore {
+                    HStack(alignment: .firstTextBaseline, spacing: DS.Space.xs) {
+                        Text("\(displayScore)")
+                            .font(DS.Font.display(96))
                             .foregroundStyle(DS.Color.ink)
                             .contentTransition(.numericText())
-                        Text(score.gradeValue.label)
-                            .labelStyle()
-                            .foregroundStyle(score.gradeValue.color)
-                    } else if let data = screenData, data.totalTime > 0 {
-                        Text("\(Int(data.productiveRatio * 100))")
-                            .font(DS.Font.display(ringSize * 0.34))
-                            .foregroundStyle(DS.Color.ink)
-                        Text("PRODUCTIVE")
-                            .labelStyle()
+
+                        Text("%")
+                            .font(DS.Font.heading(28))
                             .foregroundStyle(DS.Color.inkSecondary)
-                    } else {
-                        Text("—")
-                            .font(DS.Font.display(ringSize * 0.34))
-                            .foregroundStyle(DS.Color.inkSecondary)
-                        Text("NO DATA YET")
-                            .labelStyle()
-                            .foregroundStyle(DS.Color.inkSecondary)
+                            .padding(.bottom, 14)
                     }
+                } else {
+                    Text("—")
+                        .font(DS.Font.display(96))
+                        .foregroundStyle(DS.Color.inkSecondary)
                 }
+
+                Text(hasScore ? "PRODUCTIVE TODAY" : "NO DATA YET")
+                    .font(.spaceMono(9))
+                    .foregroundStyle(DS.Color.inkSecondary)
+                    .tracking(3)
+            }
+
+            Spacer()
+
+            // Grade badge
+            if let score = todayScore {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(DS.Color.ink)
+                        .frame(width: 60, height: 60)
+                    Text(score.grade)
+                        .font(DS.Font.display(32))
+                        .foregroundStyle(DS.Color.accent)
+                }
+                .shadow(color: DS.Color.ink.opacity(0.25), radius: 16, x: 0, y: 6)
+            } else if hasScore {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(DS.Color.ink)
+                        .frame(width: 60, height: 60)
+                    Text(Grade.from(displayScore).rawValue)
+                        .font(DS.Font.display(32))
+                        .foregroundStyle(DS.Color.accent)
+                }
+                .shadow(color: DS.Color.ink.opacity(0.25), radius: 16, x: 0, y: 6)
+            }
+        }
+    }
+
+    // MARK: - Action button
+
+    private var actionButton: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            Task { await processAndRoast() }
+        } label: {
+            HStack(spacing: DS.Space.sm) {
+                if isProcessing {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(DS.Color.darkText)
+                        .scaleEffect(0.75)
+                }
+                Text(roastButtonLabel)
+                    .font(.spaceMono(10))
+                    .foregroundStyle(
+                        roastButtonEnabled ? DS.Color.darkText : DS.Color.inkSecondary
+                    )
+                    .tracking(3)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
             }
             .frame(maxWidth: .infinity)
-            .padding(.top, DS.Space.md)
-
-            // Roast button
-            Button {
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                Task { await processAndRoast() }
-            } label: {
-                HStack(spacing: DS.Space.sm) {
-                    if isProcessing {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .tint(DS.Color.darkText)
-                            .scaleEffect(0.75)
-                    }
-                    Text(roastButtonLabel)
-                        .font(DS.Font.label(10))
-                        .foregroundStyle(DS.Color.darkText)
-                        .tracking(3)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DS.Space.md + 4)
-                .background(roastButtonEnabled ? DS.Color.ink : DS.Color.bgSecondary)
-                .clipShape(Capsule())
-            }
-            .disabled(!roastButtonEnabled)
-            .padding(.horizontal, DS.Space.md)
-            .padding(.bottom, DS.Space.md)
+            .padding(.vertical, DS.Space.md + 4)
+            .background(
+                roastButtonEnabled
+                    ? DS.Color.ink
+                    : DS.Color.ink.opacity(0.06)
+            )
+            .clipShape(Capsule())
+            .shadow(
+                color: roastButtonEnabled ? DS.Color.ink.opacity(0.18) : .clear,
+                radius: 16, x: 0, y: 6
+            )
         }
-        .cardStyle()
+        .disabled(!roastButtonEnabled)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: roastButtonEnabled)
     }
 
     private var roastButtonLabel: String {
         if isProcessing                            { return "ANALYSING..." }
-        if RateLimitService.shared.hasCalledToday  { return RateLimitService.shared.nextAvailableLabel.uppercased() }
-        if todayScore != nil                       { return "VIEW TODAY'S ROAST →" }
+        if RateLimitService.shared.hasCalledToday  {
+            return RateLimitService.shared.nextAvailableLabel.uppercased()
+        }
+        if todayScore != nil { return "VIEW TODAY'S ROAST →" }
         return "GET ROASTED →"
     }
 
@@ -199,46 +246,68 @@ struct DashboardView: View {
 
     // MARK: - Stats row
 
-    @ViewBuilder
-    private func statsRow(data: ScreenTimeData) -> some View {
-        HStack(spacing: DS.Space.sm) {
-            StatPill(label: "PRODUCTIVE", value: formatTime(data.productiveTime), color: DS.Color.accent)
-            StatPill(label: "WASTED",     value: formatTime(data.wastedTime),     color: DS.Color.danger)
-            StatPill(label: "TOP APP",    value: data.topApp.isEmpty ? "—" : shortAppName(data.topApp), color: DS.Color.ink)
+    private var statsRow: some View {
+        let data: ScreenTimeData? = todayScore.map {
+            ScreenTimeData(
+                productiveTime: $0.productiveTime,
+                wastedTime: $0.wastedTime,
+                totalTime: $0.totalScreenTime,
+                topApp: $0.topWastedApp
+            )
+        } ?? screenData
+
+        return HStack(spacing: DS.Space.sm) {
+            DarkStatCard(
+                label: "PRODUCTIVE",
+                value: data.map { formatTime($0.productiveTime) } ?? "—",
+                color: DS.Color.accent
+            )
+            DarkStatCard(
+                label: "WASTED",
+                value: data.map { formatTime($0.wastedTime) } ?? "—",
+                color: DS.Color.danger
+            )
+            DarkStatCard(
+                label: "TOP APP",
+                value: data.flatMap { $0.topApp.isEmpty ? nil : shortApp($0.topApp) } ?? "—",
+                color: DS.Color.darkText
+            )
         }
     }
 
-    // MARK: - Streak
+    // MARK: - Streak row
 
-    private var streakView: some View {
-        HStack(spacing: DS.Space.sm) {
+    private var streakRow: some View {
+        HStack(spacing: DS.Space.md) {
             Text(streak > 0 ? "🔥" : "💤")
-                .font(.system(size: 20))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(streak > 0 ? "\(streak) DAY STREAK" : "START YOUR STREAK")
-                    .labelStyle()
+                .font(.system(size: 22))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(streak > 0 ? "\(streak) DAY STREAK" : "NO STREAK YET")
+                    .font(.spaceMono(9))
                     .foregroundStyle(DS.Color.ink)
-                Text(streak > 0 ? "Keep it going tonight." : "Get roasted today to begin.")
+                    .tracking(3)
+
+                Text(streak > 0 ? "Keep it going." : "Get roasted to start.")
                     .font(DS.Font.body(13))
                     .foregroundStyle(DS.Color.inkSecondary)
             }
+
             Spacer()
+
+            if streak > 0 {
+                Text("\(streak)")
+                    .font(DS.Font.data(18))
+                    .foregroundStyle(DS.Color.ink)
+            }
         }
         .padding(DS.Space.md)
-        .cardStyle()
+        .background(Color.white.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 4)
     }
 
     // MARK: - Helpers
-
-    private var todayScoreAsData: ScreenTimeData? {
-        guard let s = todayScore else { return nil }
-        return ScreenTimeData(
-            productiveTime: s.productiveTime,
-            wastedTime: s.wastedTime,
-            totalTime: s.totalScreenTime,
-            topApp: s.topWastedApp
-        )
-    }
 
     private func refreshScreenData() {
         guard let profile = profile else { return }
@@ -252,10 +321,10 @@ struct DashboardView: View {
         let h = Int(t / 3600)
         let m = Int((t.truncatingRemainder(dividingBy: 3600)) / 60)
         if h > 0 { return "\(h)h \(m)m" }
-        return "\(m)m"
+        return m == 0 ? "0m" : "\(m)m"
     }
 
-    private func shortAppName(_ bundleId: String) -> String {
+    private func shortApp(_ bundleId: String) -> String {
         let map: [String: String] = [
             "com.zhiliaoapp.musically": "TikTok",
             "com.burbn.instagram": "Instagram",
@@ -264,19 +333,14 @@ struct DashboardView: View {
             "com.netflix.Netflix": "Netflix",
             "com.reddit.Reddit": "Reddit",
             "com.hammerandchisel.discord": "Discord",
+            "com.apple.MobileSMS": "Messages",
         ]
-        return map[bundleId] ?? bundleId.components(separatedBy: ".").last ?? bundleId
+        return map[bundleId] ?? (bundleId.components(separatedBy: ".").last?.capitalized ?? bundleId)
     }
-
-    // MARK: - Process
 
     private func processAndRoast() async {
         guard let profile = profile else { return }
-
-        if let existing = todayScore {
-            activeScore = existing
-            return
-        }
+        if let existing = todayScore { activeScore = existing; return }
 
         isProcessing = true
         processingErr = nil
@@ -303,55 +367,32 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Score Ring
+// MARK: - Dark Stat Card
 
-private struct ScoreRing: View {
-    let fill:    Double
-    let size:    CGFloat
-    let hasData: Bool
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(DS.Color.trackBg, lineWidth: size * 0.07)
-                .frame(width: size, height: size)
-
-            if hasData {
-                Circle()
-                    .trim(from: 0, to: fill)
-                    .stroke(
-                        fill >= 0.6 ? DS.Color.accent : DS.Color.danger,
-                        style: StrokeStyle(lineWidth: size * 0.07, lineCap: .round)
-                    )
-                    .frame(width: size, height: size)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 1.2, dampingFraction: 0.78), value: fill)
-            }
-        }
-    }
-}
-
-// MARK: - Stat Pill
-
-private struct StatPill: View {
+private struct DarkStatCard: View {
     let label: String
     let value: String
     let color: Color
 
     var body: some View {
-        VStack(spacing: DS.Space.xs) {
+        VStack(alignment: .leading, spacing: DS.Space.sm) {
             Text(label)
-                .labelStyle()
-                .foregroundStyle(DS.Color.inkSecondary)
+                .font(.spaceMono(7))
+                .foregroundStyle(Color.white.opacity(0.45))
+                .tracking(2)
+
             Text(value)
-                .font(DS.Font.data(14))
+                .font(DS.Font.data(15))
                 .foregroundStyle(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, DS.Space.md)
         .padding(.vertical, DS.Space.md)
-        .cardStyle()
+        .background(DS.Color.ink)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: DS.Color.ink.opacity(0.18), radius: 16, x: 0, y: 6)
     }
 }
 
