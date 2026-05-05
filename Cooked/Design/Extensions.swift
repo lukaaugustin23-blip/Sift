@@ -1,20 +1,20 @@
 import SwiftUI
 
+// MARK: - Color from hex
+
 extension Color {
     init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        let h = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
         var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        Scanner(string: h).scanHexInt64(&int)
+        let r, g, b, a: UInt64
+        switch h.count {
         case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+            (r, g, b, a) = (int >> 16, int >> 8 & 0xFF, int & 0xFF, 255)
         case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+            (r, g, b, a) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
         default:
-            (a, r, g, b) = (255, 0, 0, 0)
+            (r, g, b, a) = (0, 0, 0, 255)
         }
         self.init(
             .sRGB,
@@ -26,34 +26,28 @@ extension Color {
     }
 }
 
-extension Font {
-    static func syne(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .custom("Syne-ExtraBold", size: size)
-    }
+// MARK: - Gradient Text (ViewModifier approach)
 
-    static func dmSans(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        switch weight {
-        case .light:
-            return .custom("DMSans-Light", size: size)
-        case .medium:
-            return .custom("DMSans-Medium", size: size)
-        default:
-            return .custom("DMSans-Regular", size: size)
-        }
-    }
-
-    static func spaceMono(_ size: CGFloat, bold: Bool = false) -> Font {
-        bold
-            ? .custom("SpaceMono-Bold", size: size)
-            : .custom("SpaceMono-Regular", size: size)
+struct GradientText: ViewModifier {
+    let gradient: LinearGradient
+    func body(content: Content) -> some View {
+        content
+            .overlay(gradient)
+            .mask(content)
     }
 }
 
 extension View {
-    func labelStyle() -> some View {
-        self
-            .font(.spaceMono(10))
-            .textCase(.uppercase)
-            .tracking(3)
+    func gradientText(_ gradient: LinearGradient) -> some View {
+        modifier(GradientText(gradient: gradient))
+    }
+}
+
+// MARK: - Conditional modifier
+
+extension View {
+    @ViewBuilder
+    func `if`<T: View>(_ condition: Bool, transform: (Self) -> T) -> some View {
+        if condition { transform(self) } else { self }
     }
 }

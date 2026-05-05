@@ -57,17 +57,17 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         UIRequiresFullScreen: YES
-        NSHealthShareUsageDescription: "Cooked reads your sleep, workouts, and activity data to calculate your daily score."
+        NSHealthShareUsageDescription: "Cooked reads your activity data to calculate your daily score."
         NSHealthUpdateUsageDescription: "Cooked may write workout data you log manually."
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UIAppFonts:
-          - Syne-ExtraBold.ttf
-          - DMSans-Light.ttf
-          - DMSans-Regular.ttf
-          - DMSans-Medium.ttf
-          - SpaceMono-Regular.ttf
-          - SpaceMono-Bold.ttf
+          - PlusJakartaSans-Regular.ttf
+          - PlusJakartaSans-Italic.ttf
+          - PlusJakartaSans-SemiBold.ttf
+          - PlusJakartaSans-SemiBoldItalic.ttf
+          - PlusJakartaSans-ExtraBold.ttf
+          - PlusJakartaSans-ExtraBoldItalic.ttf
 
 schemes:
   Cooked:

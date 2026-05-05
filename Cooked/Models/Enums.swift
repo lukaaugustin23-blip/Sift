@@ -16,9 +16,9 @@ enum RoastStyle: String, Codable, CaseIterable {
 
     var emoji: String {
         switch self {
-        case .savage:             return "💀"
+        case .savage:             return "😈"
         case .disappointedParent: return "😞"
-        case .coach:              return "📣"
+        case .coach:              return "💪"
         case .sarcastic:          return "🙄"
         }
     }
@@ -60,9 +60,9 @@ enum Grade: String {
 
     var color: SwiftUI.Color {
         switch self {
-        case .a, .b: return DS.Color.accent
-        case .c:     return DS.Color.ink
-        case .d, .f: return DS.Color.danger
+        case .a, .b: return DS.Color.tealStart
+        case .c:     return DS.Color.text2
+        case .d, .f: return DS.Color.fireStart
         }
     }
 }

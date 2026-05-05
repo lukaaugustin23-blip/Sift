@@ -6,11 +6,12 @@ struct DashboardView: View {
     @Query(sort: \UserProfile.createdAt)          private var profiles:     [UserProfile]
     @Query(sort: \DayScore.date, order: .reverse) private var recentScores: [DayScore]
 
-    @State private var screenData:    ScreenTimeData? = nil
-    @State private var isProcessing   = false
+    @State private var isProcessing  = false
     @State private var processingErr: String? = nil
-    @State private var activeScore:   DayScore? = nil
-    @State private var appeared       = false
+    @State private var activeScore:  DayScore? = nil
+    @State private var appeared      = false
+
+    // MARK: - Computed
 
     private var profile:    UserProfile? { profiles.first }
     private var todayScore: DayScore? {
@@ -18,14 +19,20 @@ struct DashboardView: View {
             Calendar.current.isDateInToday($0.date) ? $0 : nil
         }
     }
-    private var displayScore: Int {
-        if let s = todayScore { return s.overall }
-        if let d = screenData, d.totalTime > 0 { return Int(d.productiveRatio * 100) }
-        return 0
+    private var hasScore: Bool { todayScore != nil }
+
+    // Mock display values — never show fake screen time data
+    private var displayScore: Int    { todayScore?.overall ?? 0 }
+    private var displayGrade: String { todayScore?.grade ?? "—" }
+    private var scoreGradient: LinearGradient {
+        guard hasScore else { return DS.Gradient.fire }
+        return displayScore >= 60 ? DS.Gradient.teal : DS.Gradient.fire
     }
-    private var hasScore: Bool {
-        todayScore != nil || (screenData?.totalTime ?? 0) > 0
+    private var borderColor: Color {
+        guard hasScore else { return DS.Color.fireStart }
+        return displayScore >= 60 ? DS.Color.tealStart : DS.Color.fireStart
     }
+
     private var greeting: String {
         switch Calendar.current.component(.hour, from: Date()) {
         case 5..<12:  return "Good morning,"
@@ -34,6 +41,7 @@ struct DashboardView: View {
         default:      return "Still up,"
         }
     }
+
     private var streak: Int {
         var s = 0; let cal = Calendar.current
         var day = cal.startOfDay(for: Date())
@@ -45,60 +53,74 @@ struct DashboardView: View {
         return s
     }
 
+    // MARK: - Body
+
     var body: some View {
         ZStack {
-            Color(hex: "F5F1E8").ignoresSafeArea()
+            // Deep dark background
+            DS.Color.bg.ignoresSafeArea()
+
+            // Ambient glows
+            ambientGlows
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
+                    Spacer().frame(height: DS.Space.lg)
 
-                    // ── Greeting + name ───────────────────────────────
+                    // Header
                     headerSection
                         .padding(.horizontal, DS.Space.lg)
-                        .padding(.top, DS.Space.lg)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 20)
 
-                    Spacer().frame(height: DS.Space.xl)
+                    Spacer().frame(height: DS.Space.lg)
 
-                    // ── Score block ────────────────────────────────────
-                    scoreBlock
+                    // Score card
+                    scoreCard
                         .padding(.horizontal, DS.Space.lg)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 28)
 
-                    Spacer().frame(height: DS.Space.xl)
+                    Spacer().frame(height: DS.Space.md)
 
-                    // ── Action button ──────────────────────────────────
-                    actionButton
+                    // Stats row
+                    statsRow
                         .padding(.horizontal, DS.Space.lg)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 32)
 
-                    Spacer().frame(height: DS.Space.lg)
+                    Spacer().frame(height: DS.Space.md)
 
-                    // ── Stats row ──────────────────────────────────────
-                    statsRow
+                    // Bars card
+                    barsCard
                         .padding(.horizontal, DS.Space.lg)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 36)
 
                     Spacer().frame(height: DS.Space.md)
 
-                    // ── Streak ─────────────────────────────────────────
-                    streakRow
+                    // Streak card
+                    streakCard
                         .padding(.horizontal, DS.Space.lg)
                         .opacity(appeared ? 1 : 0)
                         .offset(y: appeared ? 0 : 40)
 
-                    // ── Error ──────────────────────────────────────────
+                    Spacer().frame(height: DS.Space.lg)
+
+                    // CTA button
+                    ctaButton
+                        .padding(.horizontal, DS.Space.lg)
+                        .opacity(appeared ? 1 : 0)
+                        .offset(y: appeared ? 0 : 44)
+
+                    // Error
                     if let err = processingErr {
                         Text(err)
                             .font(DS.Font.body(13))
-                            .foregroundStyle(DS.Color.danger)
+                            .foregroundStyle(DS.Color.fireStart)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, DS.Space.lg)
-                            .padding(.top, DS.Space.md)
+                            .padding(.top, DS.Space.sm)
                     }
 
                     Spacer().frame(height: DS.Space.xxl)
@@ -106,8 +128,7 @@ struct DashboardView: View {
             }
         }
         .onAppear {
-            withAnimation(.spring(response: 0.7, dampingFraction: 0.82)) { appeared = true }
-            refreshScreenData()
+            withAnimation(DS.Anim.spring.delay(0.05)) { appeared = true }
         }
         .fullScreenCover(item: $activeScore) { score in
             if let profile = profile {
@@ -116,84 +137,256 @@ struct DashboardView: View {
         }
     }
 
+    // MARK: - Ambient Glows
+
+    private var ambientGlows: some View {
+        ZStack {
+            // Teal glow top-left
+            RadialGradient(
+                colors: [DS.Color.tealStart.opacity(0.07), .clear],
+                center: .init(x: 0.1, y: 0.05),
+                startRadius: 0, endRadius: 280
+            )
+            // Fire glow top-right
+            RadialGradient(
+                colors: [DS.Color.fireStart.opacity(0.07), .clear],
+                center: .init(x: 0.9, y: 0.05),
+                startRadius: 0, endRadius: 280
+            )
+        }
+        .ignoresSafeArea()
+    }
+
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xs) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(greeting.uppercased())
-                .font(.spaceMono(9))
-                .foregroundStyle(DS.Color.inkSecondary)
-                .tracking(4)
+                .font(DS.Font.label(10))
+                .foregroundStyle(DS.Color.text3)
+                .kerning(1.5)
 
             Text(profile?.name.isEmpty == false ? profile!.name : "You")
-                .font(DS.Font.hero(40))
-                .foregroundStyle(DS.Color.ink)
+                .font(DS.Font.display(38))
+                .foregroundStyle(DS.Color.text1)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Score block
+    // MARK: - Score Card
 
-    private var scoreBlock: some View {
-        HStack(alignment: .bottom, spacing: DS.Space.lg) {
-            // Giant score number
-            VStack(alignment: .leading, spacing: DS.Space.xs) {
-                if hasScore {
-                    HStack(alignment: .firstTextBaseline, spacing: DS.Space.xs) {
-                        Text("\(displayScore)")
-                            .font(DS.Font.display(96))
-                            .foregroundStyle(DS.Color.ink)
-                            .contentTransition(.numericText())
-
-                        Text("%")
-                            .font(DS.Font.heading(28))
-                            .foregroundStyle(DS.Color.inkSecondary)
-                            .padding(.bottom, 14)
+    private var scoreCard: some View {
+        VStack(alignment: .leading, spacing: DS.Space.md) {
+            HStack(alignment: .bottom, spacing: 0) {
+                // Score number
+                Group {
+                    if hasScore {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text("\(displayScore)")
+                                .font(DS.Font.display(90))
+                                .gradientText(scoreGradient)
+                                .contentTransition(.numericText())
+                            Text("/100")
+                                .font(DS.Font.display(20))
+                                .foregroundStyle(DS.Color.text3)
+                                .padding(.bottom, 12)
+                        }
+                    } else {
+                        // No data yet — intentional empty state
+                        VStack(alignment: .leading, spacing: DS.Space.xs) {
+                            Text("—")
+                                .font(DS.Font.display(90))
+                                .foregroundStyle(DS.Color.text3)
+                            Text("NO DATA YET")
+                                .font(DS.Font.label(10))
+                                .foregroundStyle(DS.Color.text3)
+                                .kerning(1.5)
+                        }
                     }
-                } else {
-                    Text("—")
-                        .font(DS.Font.display(96))
-                        .foregroundStyle(DS.Color.inkSecondary)
                 }
 
-                Text(hasScore ? "PRODUCTIVE TODAY" : "NO DATA YET")
-                    .font(.spaceMono(9))
-                    .foregroundStyle(DS.Color.inkSecondary)
-                    .tracking(3)
+                Spacer()
+
+                // Grade badge
+                if hasScore {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: DS.Radius.badge)
+                            .fill(scoreGradient)
+                            .frame(width: 58, height: 58)
+                        Text(displayGrade)
+                            .font(DS.Font.display(28))
+                            .foregroundStyle(.white)
+                    }
+                    .shadow(color: borderColor.opacity(0.4), radius: 12, x: 0, y: 4)
+                }
+            }
+
+            // Status / roast text
+            if hasScore, let roast = todayScore?.roast, !roast.isEmpty {
+                HStack(spacing: DS.Space.sm) {
+                    Rectangle()
+                        .fill(borderColor)
+                        .frame(width: 2)
+                    Text(roast)
+                        .font(DS.Font.bodyItalic(13.5))
+                        .foregroundStyle(DS.Color.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                // First-time / no-data state
+                HStack(spacing: DS.Space.sm) {
+                    Rectangle()
+                        .fill(DS.Gradient.fire)
+                        .frame(width: 2)
+                    Text("Your first roast is loading. Check back tomorrow morning.")
+                        .font(DS.Font.bodyItalic(13.5))
+                        .foregroundStyle(DS.Color.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(DS.Space.lg)
+        .cardStyle()
+    }
+
+    // MARK: - Stats Row
+
+    private var statsRow: some View {
+        HStack(spacing: DS.Space.sm) {
+            statCard(
+                label: "PRODUCTIVE",
+                value: todayScore.map { formatTime($0.productiveTime) } ?? "0m",
+                gradient: DS.Gradient.teal,
+                hasData: hasScore
+            )
+            statCard(
+                label: "WASTED",
+                value: todayScore.map { formatTime($0.wastedTime) } ?? "0m",
+                gradient: DS.Gradient.fire,
+                hasData: hasScore
+            )
+            statCard(
+                label: "TOP APP",
+                value: todayScore.flatMap { shortApp($0.topWastedApp) } ?? "—",
+                gradient: DS.Gradient.fire,
+                hasData: hasScore
+            )
+        }
+    }
+
+    private func statCard(label: String, value: String, gradient: LinearGradient, hasData: Bool) -> some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text(label)
+                .font(DS.Font.label(9))
+                .foregroundStyle(DS.Color.text3)
+                .kerning(1)
+            Text(value)
+                .font(DS.Font.display(15))
+                .if(hasData) { $0.gradientText(gradient) }
+                .if(!hasData) { $0.foregroundStyle(DS.Color.text3) }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DS.Space.md)
+        .cardStyle()
+    }
+
+    // MARK: - Bars Card
+
+    private var barsCard: some View {
+        VStack(spacing: DS.Space.md) {
+            barRow(
+                label: "Productive",
+                value: todayScore.map { formatTime($0.productiveTime) } ?? "0m",
+                ratio: hasScore ? CGFloat(todayScore!.productiveTime / max(todayScore!.totalScreenTime, 1)) : 0,
+                gradient: DS.Gradient.teal
+            )
+            Divider().background(DS.Color.cardBorder)
+            barRow(
+                label: "Wasted",
+                value: todayScore.map { formatTime($0.wastedTime) } ?? "0m",
+                ratio: hasScore ? CGFloat(todayScore!.wastedTime / max(todayScore!.totalScreenTime, 1)) : 0,
+                gradient: DS.Gradient.fire
+            )
+        }
+        .padding(DS.Space.lg)
+        .cardStyle()
+    }
+
+    private func barRow(label: String, value: String, ratio: CGFloat, gradient: LinearGradient) -> some View {
+        VStack(spacing: DS.Space.sm) {
+            HStack {
+                Text(label)
+                    .font(DS.Font.label(12))
+                    .foregroundStyle(DS.Color.text2)
+                Spacer()
+                Text(value)
+                    .font(DS.Font.label(12))
+                    .foregroundStyle(DS.Color.text2)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(DS.Color.text3.opacity(0.15)).frame(height: 6)
+                    Capsule()
+                        .fill(gradient)
+                        .frame(width: max(geo.size.width * ratio, ratio > 0 ? 6 : 0), height: 6)
+                        .animation(DS.Anim.spring.delay(0.4), value: ratio)
+                }
+            }
+            .frame(height: 6)
+        }
+    }
+
+    // MARK: - Streak Card
+
+    private var streakCard: some View {
+        HStack(spacing: DS.Space.md) {
+            Text(streak > 0 ? "🔥" : "💤")
+                .font(.system(size: 28))
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: DS.Space.xs) {
+                    if streak > 0 {
+                        Text("\(streak)")
+                            .font(DS.Font.display(18))
+                            .gradientText(DS.Gradient.fire)
+                        Text("DAY STREAK")
+                            .font(DS.Font.label(13))
+                            .foregroundStyle(DS.Color.text2)
+                    } else {
+                        Text("NO STREAK YET")
+                            .font(DS.Font.label(13))
+                            .foregroundStyle(DS.Color.text2)
+                    }
+                }
+                Text(streak > 0 ? "Keep it going." : "Get roasted to start.")
+                    .font(DS.Font.body(12))
+                    .foregroundStyle(DS.Color.text3)
             }
 
             Spacer()
 
-            // Grade badge
-            if let score = todayScore {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(DS.Color.ink)
-                        .frame(width: 60, height: 60)
-                    Text(score.grade)
-                        .font(DS.Font.display(32))
-                        .foregroundStyle(DS.Color.accent)
+            // 7 dots
+            if streak > 0 {
+                HStack(spacing: 5) {
+                    ForEach(0..<7, id: \.self) { i in
+                        Circle()
+                            .fill(i < min(streak, 7) ? AnyShapeStyle(DS.Gradient.fire) : AnyShapeStyle(DS.Color.text3.opacity(0.3)))
+                            .frame(width: 7, height: 7)
+                    }
                 }
-                .shadow(color: DS.Color.ink.opacity(0.25), radius: 16, x: 0, y: 6)
-            } else if hasScore {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(DS.Color.ink)
-                        .frame(width: 60, height: 60)
-                    Text(Grade.from(displayScore).rawValue)
-                        .font(DS.Font.display(32))
-                        .foregroundStyle(DS.Color.accent)
-                }
-                .shadow(color: DS.Color.ink.opacity(0.25), radius: 16, x: 0, y: 6)
             }
         }
+        .padding(DS.Space.md)
+        .cardStyle()
     }
 
-    // MARK: - Action button
+    // MARK: - CTA Button
 
-    private var actionButton: some View {
+    private var ctaButton: some View {
         Button {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             Task { await processAndRoast() }
@@ -202,141 +395,31 @@ struct DashboardView: View {
                 if isProcessing {
                     ProgressView()
                         .progressViewStyle(.circular)
-                        .tint(DS.Color.darkText)
+                        .tint(.white)
                         .scaleEffect(0.75)
                 }
-                Text(roastButtonLabel)
-                    .font(.spaceMono(10))
-                    .foregroundStyle(
-                        roastButtonEnabled ? DS.Color.darkText : DS.Color.inkSecondary
-                    )
-                    .tracking(3)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                Text(ctaLabel)
+                    .fireButtonStyle()
+                    .background(.clear)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.Space.md + 4)
-            .background(
-                roastButtonEnabled
-                    ? DS.Color.ink
-                    : DS.Color.ink.opacity(0.06)
-            )
-            .clipShape(Capsule())
-            .shadow(
-                color: roastButtonEnabled ? DS.Color.ink.opacity(0.18) : .clear,
-                radius: 16, x: 0, y: 6
-            )
         }
-        .disabled(!roastButtonEnabled)
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: roastButtonEnabled)
+        .shadow(color: ctaEnabled ? DS.Color.fireStart.opacity(0.35) : .clear, radius: 20, x: 0, y: 8)
+        .disabled(!ctaEnabled)
+        .animation(DS.Anim.fast, value: ctaEnabled)
     }
 
-    private var roastButtonLabel: String {
-        if isProcessing                            { return "ANALYSING..." }
-        if RateLimitService.shared.hasCalledToday  {
-            return RateLimitService.shared.nextAvailableLabel.uppercased()
-        }
-        if todayScore != nil { return "VIEW TODAY'S ROAST →" }
-        return "GET ROASTED →"
+    private var ctaLabel: String {
+        if isProcessing { return "Analysing..." }
+        if !RateLimitService.shared.hasCalledToday { return "Get Roasted →" }
+        if todayScore != nil { return "View Today's Roast →" }
+        return RateLimitService.shared.nextAvailableLabel.uppercased()
     }
 
-    private var roastButtonEnabled: Bool {
+    private var ctaEnabled: Bool {
         !isProcessing && (!RateLimitService.shared.hasCalledToday || todayScore != nil)
     }
 
-    // MARK: - Stats row
-
-    private var statsRow: some View {
-        let data: ScreenTimeData? = todayScore.map {
-            ScreenTimeData(
-                productiveTime: $0.productiveTime,
-                wastedTime: $0.wastedTime,
-                totalTime: $0.totalScreenTime,
-                topApp: $0.topWastedApp
-            )
-        } ?? screenData
-
-        return HStack(spacing: DS.Space.sm) {
-            DarkStatCard(
-                label: "PRODUCTIVE",
-                value: data.map { formatTime($0.productiveTime) } ?? "—",
-                color: DS.Color.accent
-            )
-            DarkStatCard(
-                label: "WASTED",
-                value: data.map { formatTime($0.wastedTime) } ?? "—",
-                color: DS.Color.danger
-            )
-            DarkStatCard(
-                label: "TOP APP",
-                value: data.flatMap { $0.topApp.isEmpty ? nil : shortApp($0.topApp) } ?? "—",
-                color: DS.Color.darkText
-            )
-        }
-    }
-
-    // MARK: - Streak row
-
-    private var streakRow: some View {
-        HStack(spacing: DS.Space.md) {
-            Text(streak > 0 ? "🔥" : "💤")
-                .font(.system(size: 22))
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(streak > 0 ? "\(streak) DAY STREAK" : "NO STREAK YET")
-                    .font(.spaceMono(9))
-                    .foregroundStyle(DS.Color.ink)
-                    .tracking(3)
-
-                Text(streak > 0 ? "Keep it going." : "Get roasted to start.")
-                    .font(DS.Font.body(13))
-                    .foregroundStyle(DS.Color.inkSecondary)
-            }
-
-            Spacer()
-
-            if streak > 0 {
-                Text("\(streak)")
-                    .font(DS.Font.data(18))
-                    .foregroundStyle(DS.Color.ink)
-            }
-        }
-        .padding(DS.Space.md)
-        .background(Color.white.opacity(0.6))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 4)
-    }
-
-    // MARK: - Helpers
-
-    private func refreshScreenData() {
-        guard let profile = profile else { return }
-        Task {
-            let data = await ScreenTimeService.shared.fetchScreenTime(for: Date(), profile: profile)
-            await MainActor.run { screenData = data }
-        }
-    }
-
-    private func formatTime(_ t: TimeInterval) -> String {
-        let h = Int(t / 3600)
-        let m = Int((t.truncatingRemainder(dividingBy: 3600)) / 60)
-        if h > 0 { return "\(h)h \(m)m" }
-        return m == 0 ? "0m" : "\(m)m"
-    }
-
-    private func shortApp(_ bundleId: String) -> String {
-        let map: [String: String] = [
-            "com.zhiliaoapp.musically": "TikTok",
-            "com.burbn.instagram": "Instagram",
-            "com.google.ios.youtube": "YouTube",
-            "com.atebits.Tweetie2": "Twitter",
-            "com.netflix.Netflix": "Netflix",
-            "com.reddit.Reddit": "Reddit",
-            "com.hammerandchisel.discord": "Discord",
-            "com.apple.MobileSMS": "Messages",
-        ]
-        return map[bundleId] ?? (bundleId.components(separatedBy: ".").last?.capitalized ?? bundleId)
-    }
+    // MARK: - Actions
 
     private func processAndRoast() async {
         guard let profile = profile else { return }
@@ -365,34 +448,29 @@ struct DashboardView: View {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
         activeScore = score
     }
-}
 
-// MARK: - Dark Stat Card
+    // MARK: - Helpers
 
-private struct DarkStatCard: View {
-    let label: String
-    let value: String
-    let color: Color
+    private func formatTime(_ t: TimeInterval) -> String {
+        let h = Int(t / 3600)
+        let m = Int((t.truncatingRemainder(dividingBy: 3600)) / 60)
+        if h > 0 { return "\(h)h \(m)m" }
+        return m == 0 ? "0m" : "\(m)m"
+    }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: DS.Space.sm) {
-            Text(label)
-                .font(.spaceMono(7))
-                .foregroundStyle(Color.white.opacity(0.45))
-                .tracking(2)
-
-            Text(value)
-                .font(DS.Font.data(15))
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, DS.Space.md)
-        .padding(.vertical, DS.Space.md)
-        .background(DS.Color.ink)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: DS.Color.ink.opacity(0.18), radius: 16, x: 0, y: 6)
+    private func shortApp(_ bundleId: String) -> String? {
+        guard !bundleId.isEmpty else { return nil }
+        let map: [String: String] = [
+            "com.zhiliaoapp.musically": "TikTok",
+            "com.burbn.instagram": "Instagram",
+            "com.google.ios.youtube": "YouTube",
+            "com.atebits.Tweetie2": "Twitter",
+            "com.netflix.Netflix": "Netflix",
+            "com.reddit.Reddit": "Reddit",
+            "com.hammerandchisel.discord": "Discord",
+            "com.apple.MobileSMS": "Messages",
+        ]
+        return map[bundleId] ?? bundleId.components(separatedBy: ".").last?.capitalized
     }
 }
 

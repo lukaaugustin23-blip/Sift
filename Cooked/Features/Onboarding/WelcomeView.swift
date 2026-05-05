@@ -1,81 +1,88 @@
 import SwiftUI
 
 struct WelcomeView: View {
-    var onStart: () -> Void
+    let onContinue: () -> Void
 
-    @State private var t0 = false   // "cooked." logo
-    @State private var t1 = false   // tagline
-    @State private var t2 = false   // emoji
-    @State private var t3 = false   // button
+    @State private var appeared = false
 
     var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                DS.Color.bg.ignoresSafeArea()
+        ZStack {
+            // Background
+            DS.Color.bg.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    // ── Logo block ─────────────────────────────────────────
-                    VStack(alignment: .leading, spacing: DS.Space.sm) {
-                        Text("cooked.")
-                            .font(DS.Font.display(min(geo.size.width * 0.22, 88)))
-                            .foregroundStyle(DS.Color.ink)
-                            .opacity(t0 ? 1 : 0)
-                            .offset(y: t0 ? 0 : 40)
+            // Radial fire glow top-center
+            RadialGradient(
+                colors: [DS.Color.fireStart.opacity(0.08), .clear],
+                center: .init(x: 0.5, y: 0.18),
+                startRadius: 0,
+                endRadius: 260
+            )
+            .ignoresSafeArea()
 
-                        Text("The app that tells you\nthe truth.")
-                            .font(DS.Font.body(18))
-                            .foregroundStyle(DS.Color.inkSecondary)
-                            .lineSpacing(4)
-                            .opacity(t1 ? 1 : 0)
-                            .offset(y: t1 ? 0 : 20)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, DS.Space.lg)
-                    .padding(.top, geo.size.height * 0.15)
+            VStack(spacing: 0) {
+                Spacer()
 
-                    Spacer()
+                // Logo — "cook" white + "ed." fire gradient, never wraps
+                logoText
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 24)
 
-                    // ── Flame ──────────────────────────────────────────────
-                    Text("🔥")
-                        .font(.system(size: min(geo.size.width * 0.32, 128)))
-                        .opacity(t2 ? 1 : 0)
-                        .scaleEffect(t2 ? 1 : 0.5)
+                Spacer().frame(height: DS.Space.lg)
 
-                    Spacer()
+                // Tagline
+                Text("the app that tells you the truth.")
+                    .font(DS.Font.body(16))
+                    .foregroundStyle(DS.Color.text2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .opacity(appeared ? 1 : 0)
+                    .offset(y: appeared ? 0 : 16)
 
-                    // ── CTA ────────────────────────────────────────────────
-                    VStack(spacing: DS.Space.md) {
-                        Text("DAILY SCORE · AI ROAST · NO MERCY")
-                            .font(DS.Font.label(8))
-                            .foregroundStyle(DS.Color.inkSecondary)
-                            .tracking(3)
-                            .multilineTextAlignment(.center)
-                            .opacity(t3 ? 1 : 0)
+                Spacer().frame(height: DS.Space.xl)
 
-                        Button {
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            onStart()
-                        } label: {
-                            Text("GET STARTED →")
-                                .primaryButtonStyle()
-                        }
-                        .opacity(t3 ? 1 : 0)
-                        .offset(y: t3 ? 0 : 24)
-                    }
-                    .padding(.horizontal, DS.Space.lg)
-                    .padding(.bottom, geo.safeAreaInsets.bottom + DS.Space.xl)
+                // Fire emoji
+                Text("🔥")
+                    .font(.system(size: 52))
+                    .scaleEffect(appeared ? 1 : 0.6)
+                    .opacity(appeared ? 1 : 0)
+
+                Spacer()
+
+                // CTA
+                Button(action: onContinue) {
+                    Text("Get Started →")
+                        .fireButtonStyle()
                 }
+                .shadow(color: DS.Color.fireStart.opacity(0.35), radius: 20, x: 0, y: 8)
+                .padding(.horizontal, DS.Space.lg)
+                .opacity(appeared ? 1 : 0)
+                .offset(y: appeared ? 0 : 16)
+
+                Spacer().frame(height: DS.Space.xxl)
             }
         }
-        .ignoresSafeArea(edges: .bottom)
         .onAppear {
-            let spring = DS.Animation.cardEntrance
-            withAnimation(spring)                        { t0 = true }
-            withAnimation(spring.delay(0.12))            { t1 = true }
-            withAnimation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.28)) { t2 = true }
-            withAnimation(spring.delay(0.45))            { t3 = true }
+            withAnimation(DS.Anim.spring.delay(0.05)) { appeared = true }
         }
+    }
+
+    private var logoText: some View {
+        // "cook" in white + "ed." with fire gradient — single line, never wraps
+        HStack(spacing: 0) {
+            Text("cook")
+                .font(DS.Font.display(56))
+                .foregroundStyle(DS.Color.text1)
+
+            Text("ed.")
+                .font(DS.Font.display(56))
+                .gradientText(DS.Gradient.fire)
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
-#Preview { WelcomeView(onStart: {}) }
+#Preview {
+    WelcomeView(onContinue: {})
+}

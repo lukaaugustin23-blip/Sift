@@ -1,37 +1,71 @@
 import SwiftUI
 
+// MARK: - Design System
+
 enum DS {
 
     // MARK: - Colors
 
     enum Color {
-        static let bg            = SwiftUI.Color(hex: "F5F1E8")   // warm cream — all screen backgrounds
-        static let surface       = SwiftUI.Color.white              // card surfaces
-        static let bgSecondary   = SwiftUI.Color(hex: "E8E4DC")   // subtle secondary surface
-        static let ink           = SwiftUI.Color(hex: "0A0A0A")   // primary text
-        static let inkSecondary  = SwiftUI.Color(red: 10/255, green: 10/255, blue: 10/255, opacity: 0.38)
-        static let accent        = SwiftUI.Color(hex: "4F9CF9")   // blue — productive
-        static let danger        = SwiftUI.Color(hex: "E85D5D")   // red — wasted
-        static let dark          = SwiftUI.Color(hex: "0A0A0A")
-        static let darkText      = SwiftUI.Color(hex: "F5F1E8")
+        // Backgrounds
+        static let bg         = SwiftUI.Color(hex: "0D0D12")
+        static let card       = SwiftUI.Color(hex: "161620")
+        static let cardBorder = SwiftUI.Color.white.opacity(0.055)
 
-        // Semantic
-        static let calloutPositiveBg = accent.opacity(0.10)
-        static let calloutNegativeBg = danger.opacity(0.10)
-        static let trackBg           = SwiftUI.Color(hex: "0A0A0A").opacity(0.06)
+        // Text hierarchy
+        static let text1 = SwiftUI.Color.white
+        static let text2 = SwiftUI.Color.white.opacity(0.55)
+        static let text3 = SwiftUI.Color.white.opacity(0.25)
+
+        // Teal — productive, good, positive ONLY
+        static let tealStart = SwiftUI.Color(hex: "00E5A0")
+        static let tealEnd   = SwiftUI.Color(hex: "00C4E0")
+
+        // Fire — wasted, bad, buttons, brand accent, streak ONLY
+        static let fireStart = SwiftUI.Color(hex: "FF4500")
+        static let fireEnd   = SwiftUI.Color(hex: "FFB347")
     }
 
-    // MARK: - Typography
+    // MARK: - Gradients
+
+    enum Gradient {
+        static let teal = LinearGradient(
+            colors: [DS.Color.tealStart, DS.Color.tealEnd],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+        static let fire = LinearGradient(
+            colors: [DS.Color.fireStart, DS.Color.fireEnd],
+            startPoint: .topLeading, endPoint: .bottomTrailing
+        )
+    }
+
+    // MARK: - Typography (Plus Jakarta Sans only)
 
     enum Font {
-        static func display(_ size: CGFloat = 88) -> SwiftUI.Font  { .syne(size) }
-        static func hero(_ size: CGFloat = 52) -> SwiftUI.Font     { .syne(size) }
-        static func heading(_ size: CGFloat = 24) -> SwiftUI.Font  { .syne(size) }
-        static func subheading(_ size: CGFloat = 18) -> SwiftUI.Font { .syne(size) }
-        static func body(_ size: CGFloat = 14) -> SwiftUI.Font     { .dmSans(size) }
-        static func bodyMedium(_ size: CGFloat = 14) -> SwiftUI.Font { .dmSans(size, weight: .medium) }
-        static func label(_ size: CGFloat = 10) -> SwiftUI.Font    { .spaceMono(size) }
-        static func data(_ size: CGFloat = 12) -> SwiftUI.Font     { .spaceMono(size, bold: true) }
+        // 800 — logo, titles, score numbers, badge, streak numbers
+        static func display(_ size: CGFloat) -> SwiftUI.Font {
+            .custom("PlusJakartaSans-ExtraBold", size: size)
+        }
+        // 600 — labels, buttons, tags
+        static func label(_ size: CGFloat) -> SwiftUI.Font {
+            .custom("PlusJakartaSans-SemiBold", size: size)
+        }
+        // 400 — body text
+        static func body(_ size: CGFloat) -> SwiftUI.Font {
+            .custom("PlusJakartaSans-Regular", size: size)
+        }
+        // 400 italic — roast text
+        static func bodyItalic(_ size: CGFloat) -> SwiftUI.Font {
+            .custom("PlusJakartaSans-Italic", size: size)
+        }
+        // 600 italic
+        static func labelItalic(_ size: CGFloat) -> SwiftUI.Font {
+            .custom("PlusJakartaSans-SemiBoldItalic", size: size)
+        }
+        // 800 italic
+        static func displayItalic(_ size: CGFloat) -> SwiftUI.Font {
+            .custom("PlusJakartaSans-ExtraBoldItalic", size: size)
+        }
     }
 
     // MARK: - Spacing (4pt base)
@@ -49,51 +83,62 @@ enum DS {
 
     enum Radius {
         static let card:  CGFloat = 20
-        static let badge: CGFloat = 14
-        static let tag:   CGFloat = 10
+        static let inner: CGFloat = 16
+        static let badge: CGFloat = 16
+        static let tag:   CGFloat = 8
         static let pill:  CGFloat = 999
-    }
-
-    // MARK: - Card constants
-
-    enum RoastCard {
-        static let width:    CGFloat = 360
-        static let badgeSize: CGFloat = 60
-        static let barHeight: CGFloat = 6
     }
 
     // MARK: - Animation
 
-    enum Animation {
-        static let standard   = SwiftUI.Animation.spring(response: 0.6, dampingFraction: 0.8)
-        static let cardEntrance = SwiftUI.Animation.spring(response: 0.65, dampingFraction: 0.78)
-        static let barFill    = SwiftUI.Animation.spring(response: 1.0, dampingFraction: 0.75).delay(0.35)
-        static let buttonPress = SwiftUI.Animation.spring(response: 0.25, dampingFraction: 0.8)
+    enum Anim {
+        static let spring  = SwiftUI.Animation.spring(response: 0.55, dampingFraction: 0.78)
+        static let slide   = SwiftUI.Animation.spring(response: 0.45, dampingFraction: 0.82)
+        static let fast    = SwiftUI.Animation.spring(response: 0.3,  dampingFraction: 0.85)
     }
 }
 
-// MARK: - Card modifier
+// MARK: - View helpers
 
 extension View {
-    /// Standard surface card: white bg, 20pt radius, soft shadow
+    /// Standard dark card: card bg, border, 20pt radius, shadow
     func cardStyle() -> some View {
         self
-            .background(DS.Color.surface)
+            .background(DS.Color.card)
             .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
-            .shadow(color: .black.opacity(0.06), radius: 16, x: 0, y: 4)
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.card)
+                    .strokeBorder(DS.Color.cardBorder, lineWidth: 1)
+            )
     }
 
-    /// Primary button: full-width, ink bg, cream text, pill shape
-    func primaryButtonStyle() -> some View {
+    /// Inner card: same but 16pt radius
+    func innerCardStyle() -> some View {
         self
-            .font(DS.Font.label(11))
-            .foregroundStyle(DS.Color.darkText)
-            .tracking(3)
+            .background(DS.Color.card)
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.inner))
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.inner)
+                    .strokeBorder(DS.Color.cardBorder, lineWidth: 1)
+            )
+    }
+
+    /// Fire gradient pill button
+    func fireButtonStyle() -> some View {
+        self
+            .font(DS.Font.label(15))
+            .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, DS.Space.lg)
-            .background(DS.Color.ink)
+            .padding(.vertical, DS.Space.md + 2)
+            .background(DS.Gradient.fire)
             .clipShape(Capsule())
     }
+}
 
-    // labelStyle() defined in Extensions.swift — not duplicated here
+// MARK: - Gradient text helper
+
+extension Text {
+    func gradientForeground(_ gradient: LinearGradient) -> some View {
+        self.overlay(gradient).mask(self)
+    }
 }

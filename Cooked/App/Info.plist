@@ -21,17 +21,17 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Cooked reads your sleep, workouts, and activity data to calculate your daily score.</string>
+	<string>Cooked reads your activity data to calculate your daily score.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Cooked may write workout data you log manually.</string>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Syne-ExtraBold.ttf</string>
-		<string>DMSans-Light.ttf</string>
-		<string>DMSans-Regular.ttf</string>
-		<string>DMSans-Medium.ttf</string>
-		<string>SpaceMono-Regular.ttf</string>
-		<string>SpaceMono-Bold.ttf</string>
+		<string>PlusJakartaSans-Regular.ttf</string>
+		<string>PlusJakartaSans-Italic.ttf</string>
+		<string>PlusJakartaSans-SemiBold.ttf</string>
+		<string>PlusJakartaSans-SemiBoldItalic.ttf</string>
+		<string>PlusJakartaSans-ExtraBold.ttf</string>
+		<string>PlusJakartaSans-ExtraBoldItalic.ttf</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

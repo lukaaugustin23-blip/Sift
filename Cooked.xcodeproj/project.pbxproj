@@ -7,10 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		10F957773206E813287C4647 /* PlusJakartaSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FE5223B2C3A375AE9F50C2B7 /* PlusJakartaSans-Regular.ttf */; };
 		1B927175C5AC6682726319A3 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77682534B5DDC120EAB360F4 /* WelcomeView.swift */; };
 		1FEBD7E608A2371DB4DABE0A /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8CE8D68DD1ECCF433FB0D2B /* DesignTokens.swift */; };
 		2425CD9D7D9A42083655027F /* ClaudeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59215A0599EDD71A43766B1C /* ClaudeService.swift */; };
 		24BA23A6C029465A7F9E381F /* RoastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE2CA63E05AE27C8BF0E86FE /* RoastView.swift */; };
+		24FAE38504C95C144784F3BC /* PlusJakartaSans-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 9F96706BB58C4834117469F7 /* PlusJakartaSans-Italic.ttf */; };
+		298A639DA8E0A4FF03112CE0 /* PlusJakartaSans-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 344F6E68B54D8D4E30C2C7C4 /* PlusJakartaSans-ExtraBold.ttf */; };
 		2DD2364341F4EB2BDAF450F2 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F6124AAAFB627F50E98D60 /* UserProfile.swift */; };
 		3719392B05AD5EA219C0FCC8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8BE2662622B32189883FBE3A /* Assets.xcassets */; };
 		376E4FEB0E21E7AFEE7697A9 /* RoastCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04899AFBC0CB24D3075CEDF1 /* RoastCard.swift */; };
@@ -25,25 +28,30 @@
 		7B7D8ECFB175D9EAD3BA2313 /* ScoringService.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAAC67B36EC46481E3632A1F /* ScoringService.swift */; };
 		8055691E03CF9C7792A915D0 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 218CED0724A7E20739196132 /* Enums.swift */; };
 		81390DDCF71CDFA5C67EE39A /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963E610C9CA981C9C593A198 /* Secrets.swift */; };
+		8CF0B808625CDE41573011A8 /* PlusJakartaSans-ExtraBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 2555656BE3DA7CB6D2582A0F /* PlusJakartaSans-ExtraBoldItalic.ttf */; };
 		95A05C41A1D3508AE91BE395 /* SupabaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77CCA19C545AB3DEEE9141AE /* SupabaseService.swift */; };
 		A466669984FFB09D0DCEF4B0 /* OnboardingContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14ACDB94DF564572309F1CB0 /* OnboardingContainerView.swift */; };
 		ABCEF19B39083916F695FBAA /* ScreenTimeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE055D436843D7025375DD1 /* ScreenTimeService.swift */; };
 		AD35568E7F8B4118A44E3687 /* CookedApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D58489C58EAB4FC89DFFB6 /* CookedApp.swift */; };
 		B1A387785BD3B0AF85C7741D /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B7434817EB9AE7217CF3A6 /* DashboardView.swift */; };
+		E1E511A60713238F4EEF9219 /* PlusJakartaSans-SemiBoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 03CC9A1546A6FE556B491E2E /* PlusJakartaSans-SemiBoldItalic.ttf */; };
 		E2599C78C916100C16B35628 /* DayScore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CAFCA33D250980D9381B39E /* DayScore.swift */; };
 		E3DC952E26534BB412933D80 /* ShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC4240793093EF500F1B4DB /* ShareCardView.swift */; };
 		E79B4F7BEC3BB95F2886CC47 /* DMSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7CAB7E61F64EA9F0E000C115 /* DMSans-Light.ttf */; };
-		E8E3833CC9289EBA43394653 /* AppCategorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65FBE9455F57153EC66377A /* AppCategorizationView.swift */; };
 		F29C099D885716B915C0B79C /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5533346D0299CBC1C4C7A4C4 /* DMSans-Medium.ttf */; };
+		F75A66D28E5162E1E1714716 /* PlusJakartaSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8CB97E940C5F60CBDC882D76 /* PlusJakartaSans-SemiBold.ttf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		03CC9A1546A6FE556B491E2E /* PlusJakartaSans-SemiBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-SemiBoldItalic.ttf"; sourceTree = "<group>"; };
 		04899AFBC0CB24D3075CEDF1 /* RoastCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoastCard.swift; sourceTree = "<group>"; };
 		14ACDB94DF564572309F1CB0 /* OnboardingContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingContainerView.swift; sourceTree = "<group>"; };
 		218CED0724A7E20739196132 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
+		2555656BE3DA7CB6D2582A0F /* PlusJakartaSans-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		2CAFCA33D250980D9381B39E /* DayScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayScore.swift; sourceTree = "<group>"; };
 		331AA7DDA67CA3A6E7CC6586 /* SpaceMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Regular.ttf"; sourceTree = "<group>"; };
 		33CA95F4DB4683B43B1EDDD3 /* RateLimitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitService.swift; sourceTree = "<group>"; };
+		344F6E68B54D8D4E30C2C7C4 /* PlusJakartaSans-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-ExtraBold.ttf"; sourceTree = "<group>"; };
 		49361D220D39C839E5D3233C /* SpaceMono-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Bold.ttf"; sourceTree = "<group>"; };
 		5521AAB5C43CBA160F6B6CA3 /* Cooked.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Cooked.entitlements; sourceTree = "<group>"; };
 		5533346D0299CBC1C4C7A4C4 /* DMSans-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Medium.ttf"; sourceTree = "<group>"; };
@@ -57,7 +65,9 @@
 		7CAB7E61F64EA9F0E000C115 /* DMSans-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Light.ttf"; sourceTree = "<group>"; };
 		84B7434817EB9AE7217CF3A6 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		8BE2662622B32189883FBE3A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8CB97E940C5F60CBDC882D76 /* PlusJakartaSans-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-SemiBold.ttf"; sourceTree = "<group>"; };
 		963E610C9CA981C9C593A198 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
+		9F96706BB58C4834117469F7 /* PlusJakartaSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-Italic.ttf"; sourceTree = "<group>"; };
 		A8CE8D68DD1ECCF433FB0D2B /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		AC635E24D0422DAC1217DF27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BE2CA63E05AE27C8BF0E86FE /* RoastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoastView.swift; sourceTree = "<group>"; };
@@ -65,10 +75,10 @@
 		DBECD06F97480A6460A3ADC9 /* Syne-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-ExtraBold.ttf"; sourceTree = "<group>"; };
 		EAAC67B36EC46481E3632A1F /* ScoringService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoringService.swift; sourceTree = "<group>"; };
 		EC25CCD30E96E5A3ABC2585C /* DMSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "DMSans-Regular.ttf"; sourceTree = "<group>"; };
-		F65FBE9455F57153EC66377A /* AppCategorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppCategorizationView.swift; sourceTree = "<group>"; };
 		F724DAD2F14CB6D52A613C6E /* RoastResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoastResult.swift; sourceTree = "<group>"; };
 		FBC4240793093EF500F1B4DB /* ShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardView.swift; sourceTree = "<group>"; };
 		FDE055D436843D7025375DD1 /* ScreenTimeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenTimeService.swift; sourceTree = "<group>"; };
+		FE5223B2C3A375AE9F50C2B7 /* PlusJakartaSans-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-Regular.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -112,7 +122,6 @@
 		41F85F7295E6F36E035778AA /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
-				F65FBE9455F57153EC66377A /* AppCategorizationView.swift */,
 				14ACDB94DF564572309F1CB0 /* OnboardingContainerView.swift */,
 				6C72380D53C0EAA668646814 /* SetupView.swift */,
 				77682534B5DDC120EAB360F4 /* WelcomeView.swift */,
@@ -144,6 +153,12 @@
 				7CAB7E61F64EA9F0E000C115 /* DMSans-Light.ttf */,
 				5533346D0299CBC1C4C7A4C4 /* DMSans-Medium.ttf */,
 				EC25CCD30E96E5A3ABC2585C /* DMSans-Regular.ttf */,
+				344F6E68B54D8D4E30C2C7C4 /* PlusJakartaSans-ExtraBold.ttf */,
+				2555656BE3DA7CB6D2582A0F /* PlusJakartaSans-ExtraBoldItalic.ttf */,
+				9F96706BB58C4834117469F7 /* PlusJakartaSans-Italic.ttf */,
+				FE5223B2C3A375AE9F50C2B7 /* PlusJakartaSans-Regular.ttf */,
+				8CB97E940C5F60CBDC882D76 /* PlusJakartaSans-SemiBold.ttf */,
+				03CC9A1546A6FE556B491E2E /* PlusJakartaSans-SemiBoldItalic.ttf */,
 				49361D220D39C839E5D3233C /* SpaceMono-Bold.ttf */,
 				331AA7DDA67CA3A6E7CC6586 /* SpaceMono-Regular.ttf */,
 				DBECD06F97480A6460A3ADC9 /* Syne-ExtraBold.ttf */,
@@ -265,6 +280,12 @@
 				E79B4F7BEC3BB95F2886CC47 /* DMSans-Light.ttf in Resources */,
 				F29C099D885716B915C0B79C /* DMSans-Medium.ttf in Resources */,
 				3F648BCFC42411D8D8904216 /* DMSans-Regular.ttf in Resources */,
+				298A639DA8E0A4FF03112CE0 /* PlusJakartaSans-ExtraBold.ttf in Resources */,
+				8CF0B808625CDE41573011A8 /* PlusJakartaSans-ExtraBoldItalic.ttf in Resources */,
+				24FAE38504C95C144784F3BC /* PlusJakartaSans-Italic.ttf in Resources */,
+				10F957773206E813287C4647 /* PlusJakartaSans-Regular.ttf in Resources */,
+				F75A66D28E5162E1E1714716 /* PlusJakartaSans-SemiBold.ttf in Resources */,
+				E1E511A60713238F4EEF9219 /* PlusJakartaSans-SemiBoldItalic.ttf in Resources */,
 				3C07DBCAA3FC59DDB7108DDF /* SpaceMono-Bold.ttf in Resources */,
 				719B2327B98575BEF2F51ED7 /* SpaceMono-Regular.ttf in Resources */,
 				59D57F8682AADD38A665FBA5 /* Syne-ExtraBold.ttf in Resources */,
@@ -278,7 +299,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E8E3833CC9289EBA43394653 /* AppCategorizationView.swift in Sources */,
 				2425CD9D7D9A42083655027F /* ClaudeService.swift in Sources */,
 				AD35568E7F8B4118A44E3687 /* CookedApp.swift in Sources */,
 				B1A387785BD3B0AF85C7741D /* DashboardView.swift in Sources */,

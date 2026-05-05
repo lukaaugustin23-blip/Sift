@@ -25,6 +25,6 @@ struct RootView: View {
                 OnboardingContainerView()
             }
         }
-        .animation(DS.Animation.standard, value: onboardingComplete)
+        .animation(DS.Anim.spring, value: onboardingComplete)
     }
 }
