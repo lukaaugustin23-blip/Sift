@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - RoastResult
-// Transient struct — wraps Claude API JSON response.
+// Transient struct — wraps Groq API JSON response.
 // Never persisted directly; values are written into DayScore after receipt.
 
 struct RoastResult: Codable {
@@ -10,34 +10,23 @@ struct RoastResult: Codable {
 
     // MARK: - Decoding
 
-    /// Decode Claude's raw response body.
-    /// Handles both clean JSON and JSON embedded in markdown code fences.
-    static func decode(from data: Data) throws -> RoastResult {
-        // 1. Try direct JSON decode
-        if let result = try? JSONDecoder().decode(RoastResult.self, from: data) {
-            return result
-        }
-
-        // 2. Attempt to extract JSON from ```json ... ``` fence
-        if let raw = String(data: data, encoding: .utf8) {
-            let stripped = raw
+    /// Decode from a raw string (the content field from Groq's message).
+    /// Handles clean JSON and markdown-fenced JSON.
+    static func decode(from string: String) throws -> RoastResult {
+        let candidates = [
+            string,
+            string
                 .replacingOccurrences(of: "```json", with: "")
                 .replacingOccurrences(of: "```", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if let strippedData = stripped.data(using: .utf8) {
-                return try JSONDecoder().decode(RoastResult.self, from: strippedData)
+                .trimmingCharacters(in: .whitespacesAndNewlines),
+        ]
+        for candidate in candidates {
+            if let data = candidate.data(using: .utf8),
+               let result = try? JSONDecoder().decode(RoastResult.self, from: data) {
+                return result
             }
         }
-
         throw RoastDecodeError.malformedResponse
-    }
-
-    /// Decode from Anthropic message content string (the text block value).
-    static func decode(from string: String) throws -> RoastResult {
-        guard let data = string.data(using: .utf8) else {
-            throw RoastDecodeError.malformedResponse
-        }
-        return try decode(from: data)
     }
 }
 
@@ -47,22 +36,22 @@ enum RoastDecodeError: LocalizedError {
     case malformedResponse
 
     var errorDescription: String? {
-        "Claude returned an unexpected response format. Will retry next roast."
+        "Groq returned an unexpected response format. Will retry next roast."
     }
 }
 
-// MARK: - Anthropic API response envelope
-// Used to pull the text content out of the full /v1/messages response.
+// MARK: - Groq / OpenAI-compatible response envelope
 
-struct AnthropicMessagesResponse: Codable {
-    struct Content: Codable {
-        let type: String
-        let text: String?
+struct GroqChatResponse: Codable {
+    struct Choice: Codable {
+        struct Message: Codable {
+            let role: String
+            let content: String
+        }
+        let message: Message
     }
-    let content: [Content]
+    let choices: [Choice]
 
-    /// First text block from the response
-    var firstText: String? {
-        content.first(where: { $0.type == "text" })?.text
-    }
+    /// Content string from the first choice
+    var firstContent: String? { choices.first?.message.content }
 }
