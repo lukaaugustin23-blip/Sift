@@ -3,74 +3,79 @@ import SwiftUI
 struct WelcomeView: View {
     var onStart: () -> Void
 
-    @State private var logoVisible   = false
-    @State private var taglineVisible = false
-    @State private var buttonVisible  = false
+    @State private var t0 = false   // "cooked." logo
+    @State private var t1 = false   // tagline
+    @State private var t2 = false   // emoji
+    @State private var t3 = false   // button
 
     var body: some View {
-        ZStack {
-            DS.Color.bg.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack {
+                DS.Color.bg.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Spacer()
+                VStack(spacing: 0) {
+                    // ── Logo block ─────────────────────────────────────────
+                    VStack(alignment: .leading, spacing: DS.Space.sm) {
+                        Text("cooked.")
+                            .font(DS.Font.display(min(geo.size.width * 0.22, 88)))
+                            .foregroundStyle(DS.Color.ink)
+                            .opacity(t0 ? 1 : 0)
+                            .offset(y: t0 ? 0 : 40)
 
-                // Logo
-                VStack(spacing: DS.Space.sm) {
-                    Text("COOKED")
-                        .font(DS.Font.display(72))
-                        .foregroundStyle(DS.Color.ink)
-                        .opacity(logoVisible ? 1 : 0)
-                        .offset(y: logoVisible ? 0 : 24)
+                        Text("The app that tells you\nthe truth.")
+                            .font(DS.Font.body(18))
+                            .foregroundStyle(DS.Color.inkSecondary)
+                            .lineSpacing(4)
+                            .opacity(t1 ? 1 : 0)
+                            .offset(y: t1 ? 0 : 20)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, DS.Space.lg)
+                    .padding(.top, geo.size.height * 0.15)
 
-                    Text("The app that tells you the truth.")
-                        .font(DS.Font.body(16))
-                        .foregroundStyle(DS.Color.inkSecondary)
-                        .opacity(taglineVisible ? 1 : 0)
-                        .offset(y: taglineVisible ? 0 : 12)
+                    Spacer()
+
+                    // ── Flame ──────────────────────────────────────────────
+                    Text("🔥")
+                        .font(.system(size: min(geo.size.width * 0.32, 128)))
+                        .opacity(t2 ? 1 : 0)
+                        .scaleEffect(t2 ? 1 : 0.5)
+
+                    Spacer()
+
+                    // ── CTA ────────────────────────────────────────────────
+                    VStack(spacing: DS.Space.md) {
+                        Text("DAILY SCORE · AI ROAST · NO MERCY")
+                            .font(DS.Font.label(8))
+                            .foregroundStyle(DS.Color.inkSecondary)
+                            .tracking(3)
+                            .multilineTextAlignment(.center)
+                            .opacity(t3 ? 1 : 0)
+
+                        Button {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            onStart()
+                        } label: {
+                            Text("GET STARTED →")
+                                .primaryButtonStyle()
+                        }
+                        .opacity(t3 ? 1 : 0)
+                        .offset(y: t3 ? 0 : 24)
+                    }
+                    .padding(.horizontal, DS.Space.lg)
+                    .padding(.bottom, geo.safeAreaInsets.bottom + DS.Space.xl)
                 }
-
-                Spacer()
-
-                // Flame graphic (emoji stand-in for v1)
-                Text("🔥")
-                    .font(.system(size: 64))
-                    .opacity(logoVisible ? 1 : 0)
-                    .padding(.bottom, DS.Space.xxl)
-
-                Spacer()
-
-                // Start button
-                Button(action: onStart) {
-                    Text("GET STARTED")
-                        .font(DS.Font.label(11))
-                        .foregroundStyle(DS.Color.darkText)
-                        .tracking(3)
-                        .textCase(.uppercase)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.Space.lg)
-                        .background(DS.Color.dark)
-                        .clipShape(Capsule())
-                }
-                .opacity(buttonVisible ? 1 : 0)
-                .offset(y: buttonVisible ? 0 : 16)
-                .padding(.horizontal, DS.Space.lg)
-                .padding(.bottom, DS.Space.xxl)
             }
         }
+        .ignoresSafeArea(edges: .bottom)
         .onAppear {
-            withAnimation(DS.Animation.cardEntrance) {
-                logoVisible = true
-            }
-            withAnimation(DS.Animation.cardEntrance.delay(0.15)) {
-                taglineVisible = true
-            }
-            withAnimation(DS.Animation.cardEntrance.delay(0.35)) {
-                buttonVisible = true
-            }
+            let spring = DS.Animation.cardEntrance
+            withAnimation(spring)                        { t0 = true }
+            withAnimation(spring.delay(0.12))            { t1 = true }
+            withAnimation(.spring(response: 0.8, dampingFraction: 0.6).delay(0.28)) { t2 = true }
+            withAnimation(spring.delay(0.45))            { t3 = true }
         }
     }
 }
 
-#Preview {
-    WelcomeView(onStart: {})
-}
+#Preview { WelcomeView(onStart: {}) }

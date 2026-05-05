@@ -1,106 +1,35 @@
 import Foundation
 
-// MARK: - GroqService (named ClaudeService for internal compatibility)
-// Uses Groq's OpenAI-compatible API for roast generation.
-// Model: llama-3.3-70b-versatile — fast, cheap, great at creative writing.
+// MARK: - GroqService (ClaudeService for internal compatibility)
 
 final class ClaudeService {
-
     static let shared = ClaudeService()
     private init() {}
 
-    private let endpoint  = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
-    private let model     = "llama-3.3-70b-versatile"
-    private let maxTokens = 200
+    private let endpoint = URL(string: "https://api.groq.com/openai/v1/chat/completions")!
+    private let model    = "llama-3.3-70b-versatile"
 
-    // MARK: - Public API
+    // MARK: - Generate roast
 
-    /// Generates a roast for the given day. Throws on network/parse error.
-    /// Rate limiting enforced by RateLimitService before calling this.
-    func generateRoast(
-        score: DayScore,
-        log: DayLog,
-        profile: UserProfile
-    ) async throws -> RoastResult {
-        let prompt  = buildPrompt(score: score, log: log, profile: profile)
-        let payload = buildPayload(prompt: prompt)
-        let data    = try await post(payload: payload)
-        let text    = try extractText(from: data)
-        return try RoastResult.decode(from: text)
-    }
+    func generateRoast(score: DayScore, profile: UserProfile) async throws -> RoastResult {
+        let prompt = buildPrompt(score: score, profile: profile)
 
-    // MARK: - Prompt builder (target < 100 tokens input)
-
-    private func buildPrompt(score: DayScore, log: DayLog, profile: UserProfile) -> String {
-        let sleep   = formatSleep(score: score)
-        let workout = formatWorkout(log: log)
-        let school  = formatSchool(log: log)
-        let hw      = formatHomework(log: log)
-        let goals   = profile.goals.isEmpty ? "none" : profile.goals.joined(separator: ", ")
-        let style   = profile.roastStyle.promptInstruction
-        let censor  = profile.uncensoredMode ? "Uncensored: swearing allowed." : "Keep it clean."
-
-        return """
-        Sleep: \(sleep)
-        Workout: \(workout)
-        Screen productive: \(score.screenScore)%, wasted: \(100 - score.screenScore)%
-        School: \(school)
-        Homework: \(hw)
-        Goals: \(goals)
-        Roast style: \(style)
-        \(censor)
-
-        2-3 sentence roast based on this data. Be specific and brutal. Add one short tip for tomorrow.
-        Return JSON only: {"roast":"...","tip":"..."}
-        """
-    }
-
-    // MARK: - Prompt fragments
-
-    private func formatSleep(score: DayScore) -> String { "\(score.sleepScore)/100" }
-
-    private func formatWorkout(log: DayLog) -> String {
-        guard !log.workouts.isEmpty else { return "none" }
-        let types = log.workouts.map { $0.type }.joined(separator: "+")
-        let mins  = Int(log.totalWorkoutDuration / 60)
-        return "\(types) \(mins)min"
-    }
-
-    private func formatSchool(log: DayLog) -> String {
-        log.schoolAttended
-            ? "attended, \(log.productiveFreePeriods)P/\(log.wastedFreePeriods)W free periods"
-            : "skipped"
-    }
-
-    private func formatHomework(log: DayLog) -> String {
-        guard log.homeworkCompleted else { return "not done" }
-        if let delay = log.homeworkDelay, delay > 1800 {
-            return "done, procrastinated \(Int(delay / 60))min"
-        }
-        return "done promptly"
-    }
-
-    // MARK: - Groq request payload (OpenAI-compatible)
-
-    private func buildPayload(prompt: String) -> [String: Any] {
-        [
-            "model": model,
-            "max_tokens": maxTokens,
-            "temperature": 0.9,
-            "messages": [
-                ["role": "user", "content": prompt]
-            ]
-        ]
-    }
-
-    // MARK: - Network
-
-    private func post(payload: [String: Any]) async throws -> Data {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.httpBody   = try JSONSerialization.data(withJSONObject: payload)
-        request.setValue("application/json",               forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(Secrets.claudeAPIKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json",                   forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(Secrets.claudeAPIKey)",     forHTTPHeaderField: "Authorization")
+
+        let payload: [String: Any] = [
+            "model": model,
+            "max_tokens": 200,
+            "temperature": 0.9,
+            "messages": [
+                ["role": "system", "content": systemPrompt(profile: profile)],
+                ["role": "user",   "content": prompt]
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
@@ -108,24 +37,42 @@ final class ClaudeService {
             throw ClaudeError.invalidResponse
         }
         guard http.statusCode == 200 else {
-            let body = String(data: data, encoding: .utf8) ?? "(empty)"
+            let body = String(data: data, encoding: .utf8) ?? ""
             throw ClaudeError.httpError(http.statusCode, body)
         }
-        return data
-    }
 
-    // MARK: - Parse Groq envelope → text string
-
-    private func extractText(from data: Data) throws -> String {
-        let envelope = try JSONDecoder().decode(GroqChatResponse.self, from: data)
-        guard let text = envelope.firstContent else {
+        let parsed = try JSONDecoder().decode(GroqChatResponse.self, from: data)
+        guard let content = parsed.firstContent else {
             throw ClaudeError.noTextContent
         }
-        return text
+
+        return try RoastResult.decode(from: content)
+    }
+
+    // MARK: - Prompt building
+
+    private func systemPrompt(profile: UserProfile) -> String {
+        let censored = profile.uncensoredMode ? "" : " Keep it clean — no swearing."
+        return "You are a brutally honest productivity coach. You roast people based on their screen time data.\(censored) Always respond ONLY with valid JSON: {\"roast\":\"...\",\"tip\":\"...\"}"
+    }
+
+    private func buildPrompt(score: DayScore, profile: UserProfile) -> String {
+        let goalsList = profile.goals.filter { !$0.isEmpty }.joined(separator: "; ")
+        return """
+        Name: \(profile.name)
+        Score: \(score.overall)/100
+        Productive screen time: \(score.productiveFormatted)
+        Wasted screen time: \(score.wastedFormatted)
+        Top wasted app: \(score.topWastedApp.isEmpty ? "Unknown" : score.topWastedApp)
+        Goals: \(goalsList.isEmpty ? "None set" : goalsList)
+        Roast style: \(profile.roastStyle.displayName)
+
+        Write a 2–3 sentence roast about their screen time. Be specific. Then give one concrete tip for tomorrow.
+        """
     }
 }
 
-// MARK: - Errors
+// MARK: - Errors (GroqChatResponse defined in RoastResult.swift)
 
 enum ClaudeError: LocalizedError {
     case invalidResponse
@@ -134,9 +81,9 @@ enum ClaudeError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse:         return "Invalid response from Groq API."
-        case .httpError(let c, let b): return "Groq API error \(c): \(b)"
-        case .noTextContent:           return "Groq returned no text content."
+        case .invalidResponse:        return "Invalid server response"
+        case .httpError(let c, _):    return "Server error \(c)"
+        case .noTextContent:          return "Empty response from AI"
         }
     }
 }

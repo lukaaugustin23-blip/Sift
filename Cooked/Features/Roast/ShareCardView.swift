@@ -1,9 +1,5 @@
 import SwiftUI
 
-// MARK: - ShareCardView
-// Bottom sheet — shows preview + export button.
-// Uses ImageRenderer to produce a UIImage then hands off to UIActivityViewController.
-
 struct ShareCardView: View {
     let score:   DayScore
     let profile: UserProfile
@@ -11,34 +7,29 @@ struct ShareCardView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var isRendering = false
-    @State private var renderedImage: UIImage?
-    @State private var showShareSheet = false
+    @State private var isRendering  = false
+    @State private var showActivity = false
+    @State private var rendered:    UIImage? = nil
 
-    // Export dimensions (9:16 friendly)
     private let exportWidth:  CGFloat = 390
     private let exportHeight: CGFloat = 700
-    private let exportScale:  CGFloat = 3    // 3× = 1170×2100 crisp
+    private let exportScale:  CGFloat = 3
 
     var body: some View {
         VStack(spacing: DS.Space.lg) {
-            // Preview
             Text("SHARE YOUR ROAST")
                 .labelStyle()
                 .foregroundStyle(DS.Color.inkSecondary)
                 .padding(.top, DS.Space.lg)
 
-            // Live card preview (smaller, centered)
+            // Preview
             ScrollView(.vertical, showsIndicators: false) {
                 RoastCard(score: score, profile: profile, streak: streak)
                     .scaleEffect(0.82)
-                    .frame(
-                        width:  RoastCard.cardWidth * 0.82,
-                        height: 420
-                    )
+                    .frame(width: RoastCard.cardWidth * 0.82, height: 380)
                     .clipped()
             }
-            .frame(height: 380)
+            .frame(height: 340)
 
             Spacer()
 
@@ -46,7 +37,7 @@ struct ShareCardView: View {
             Button {
                 Task { await renderAndShare() }
             } label: {
-                HStack {
+                HStack(spacing: DS.Space.sm) {
                     if isRendering {
                         ProgressView()
                             .progressViewStyle(.circular)
@@ -62,7 +53,7 @@ struct ShareCardView: View {
                 .foregroundStyle(DS.Color.darkText)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, DS.Space.lg)
-                .background(isRendering ? DS.Color.inkSecondary : DS.Color.dark)
+                .background(isRendering ? DS.Color.inkSecondary : DS.Color.ink)
                 .clipShape(Capsule())
             }
             .disabled(isRendering)
@@ -73,72 +64,45 @@ struct ShareCardView: View {
                 .foregroundStyle(DS.Color.inkSecondary)
                 .padding(.bottom, DS.Space.xl)
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let img = renderedImage {
-                ActivityViewController(activityItems: [img])
-                    .ignoresSafeArea()
+        .sheet(isPresented: $showActivity) {
+            if let img = rendered {
+                ActivityViewController(activityItems: [img]).ignoresSafeArea()
             }
         }
     }
-
-    // MARK: - Render + share
 
     @MainActor
     private func renderAndShare() async {
         isRendering = true
         defer { isRendering = false }
-
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
 
-        // Build export card — fixed size, no dynamic sizing
-        let exportCard = RoastCard(
-            score:    score,
-            profile:  profile,
-            streak:   streak,
-            isForExport: true
-        )
-        .frame(width: exportWidth, height: exportHeight)
-        .clipped()
+        let card = RoastCard(score: score, profile: profile, streak: streak, isForExport: true)
+            .frame(width: exportWidth, height: exportHeight)
+            .clipped()
 
-        let renderer = ImageRenderer(content: exportCard)
+        let renderer = ImageRenderer(content: card)
         renderer.scale = exportScale
         renderer.proposedSize = .init(width: exportWidth, height: exportHeight)
 
-        guard let image = renderer.uiImage else {
-            isRendering = false
-            return
-        }
-
-        // Watermark already in card bottom row ("cooked" label)
-        renderedImage = image
+        guard let img = renderer.uiImage else { return }
+        rendered = img
         UINotificationFeedbackGenerator().notificationOccurred(.success)
-        showShareSheet = true
+        showActivity = true
     }
 }
 
-// MARK: - UIActivityViewController wrapper
-
 struct ActivityViewController: UIViewControllerRepresentable {
     let activityItems: [Any]
-    var applicationActivities: [UIActivity]? = nil
-
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(
-            activityItems: activityItems,
-            applicationActivities: applicationActivities
-        )
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
     }
-
     func updateUIViewController(_ vc: UIActivityViewController, context: Context) {}
 }
 
 #Preview {
-    let score = DayScore()
-    score.overall = 72; score.sleepScore = 80; score.physicalScore = 90
-    score.screenScore = 60; score.schoolScore = 70; score.homeworkScore = 55
-    score.roast = "You hit the gym but spent 3 hours on TikTok."
-    score.tip   = "Put your phone in another room tonight."
-    score.callouts = [Callout(type: .positive, emoji: "🔥", text: "Gym at 4pm")]
-
-    return ShareCardView(score: score, profile: UserProfile(name: "Luka"), streak: 7)
+    let s = DayScore(overall: 72, productiveTime: 7200, wastedTime: 5400,
+                     roast: "You spent more time on TikTok than on anything productive.",
+                     tip: "Delete TikTok from your home screen tonight.")
+    return ShareCardView(score: s, profile: UserProfile(name: "Luka"), streak: 7)
 }

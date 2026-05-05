@@ -1,12 +1,12 @@
 import SwiftUI
 
 // MARK: - RoastCard
-// Self-contained — no @Query/@Environment so ImageRenderer can render it cleanly.
+// Self-contained — no @Query/@Environment. Safe for ImageRenderer.
 
 struct RoastCard: View {
-    let score:    DayScore
-    let profile:  UserProfile
-    let streak:   Int
+    let score:       DayScore
+    let profile:     UserProfile
+    let streak:      Int
     var isForExport: Bool = false
 
     @State private var barsAnimated = false
@@ -14,12 +14,9 @@ struct RoastCard: View {
     static let cardWidth: CGFloat = 360
 
     private var dateString: String {
-        let f = DateFormatter()
-        f.dateFormat = "MMM d, yyyy"
+        let f = DateFormatter(); f.dateFormat = "MMM d, yyyy"
         return f.string(from: score.date).uppercased()
     }
-
-    private var gradeValue: Grade { Grade.from(score.overall) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,76 +25,70 @@ struct RoastCard: View {
             roastSection
             statsRow
             barsSection
-            calloutsSection
+            if !score.callouts.isEmpty { calloutsSection }
             bottomRow
         }
         .frame(width: Self.cardWidth)
-        .background(DS.Color.bg)
+        .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: DS.Radius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
-        )
-        .shadow(color: .black.opacity(0.12), radius: 24, y: 12)
+        .shadow(color: .black.opacity(0.12), radius: 32, x: 0, y: 12)
         .onAppear {
+            if isForExport { barsAnimated = true; return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                 withAnimation(DS.Animation.barFill) { barsAnimated = true }
             }
         }
     }
 
-    // MARK: - Header bar (black)
+    // MARK: - Header
 
     private var headerBar: some View {
         HStack {
-            Text("cooked")
-                .font(DS.Font.subheading(16))
+            Text("cooked.")
+                .font(DS.Font.subheading(15))
                 .foregroundStyle(DS.Color.darkText)
             Spacer()
             Text(dateString)
-                .font(DS.Font.label(9))
-                .foregroundStyle(DS.Color.darkText.opacity(0.6))
+                .font(DS.Font.label(8))
+                .foregroundStyle(DS.Color.darkText.opacity(0.55))
                 .tracking(2)
         }
         .padding(.horizontal, DS.Space.lg)
         .padding(.vertical, DS.Space.md)
-        .background(DS.Color.dark)
+        .background(DS.Color.ink)
     }
 
-    // MARK: - Score section
+    // MARK: - Score
 
     private var scoreSection: some View {
-        HStack(alignment: .bottom, spacing: DS.Space.md) {
-            // Big score number
+        HStack(alignment: .bottom, spacing: 0) {
+            // Number
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(score.overall)")
-                    .font(DS.Font.display(88))
+                    .font(DS.Font.display(80))
                     .foregroundStyle(DS.Color.ink)
                     .contentTransition(.numericText())
                 Text("/100")
-                    .font(DS.Font.body(16))
+                    .font(DS.Font.body(14))
                     .foregroundStyle(DS.Color.inkSecondary)
-                    .padding(.bottom, 14)
+                    .padding(.bottom, 11)
             }
 
             Spacer()
 
             // Grade badge
             ZStack {
-                RoundedRectangle(cornerRadius: DS.Radius.badge)
-                    .fill(DS.Color.dark)
-                    .frame(
-                        width:  DS.RoastCard.badgeSize,
-                        height: DS.RoastCard.badgeSize
-                    )
-                Text(gradeValue.rawValue)
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(DS.Color.ink)
+                    .frame(width: DS.RoastCard.badgeSize, height: DS.RoastCard.badgeSize)
+                Text(score.grade)
                     .font(DS.Font.display(32))
                     .foregroundStyle(DS.Color.accent)
             }
         }
         .padding(.horizontal, DS.Space.lg)
         .padding(.top, DS.Space.lg)
-        .padding(.bottom, DS.Space.sm)
+        .padding(.bottom, DS.Space.xs)
     }
 
     // MARK: - Roast text
@@ -109,73 +100,70 @@ struct RoastCard: View {
                 .frame(width: 3)
                 .clipShape(Capsule())
 
-            Text(score.roast.isEmpty ? "Your roast will appear here after processing." : score.roast)
-                .font(.custom("DMSans-Regular", size: 14).italic())
+            Text(score.roast.isEmpty ? "Your daily roast will appear here." : score.roast)
+                .font(.custom("DMSans-Regular", size: 13).italic())
                 .foregroundStyle(DS.Color.ink)
-                .lineSpacing(4)
+                .lineSpacing(5)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, DS.Space.lg)
         .padding(.vertical, DS.Space.md)
+        .background(Color.black.opacity(0.025))
     }
 
-    // MARK: - Stats row (3 columns)
+    // MARK: - Stats row
 
     private var statsRow: some View {
         HStack(spacing: 0) {
-            StatColumn(
-                label: "PRODUCTIVE",
-                value: scoreLabel(score.screenScore),
-                color: DS.Color.accent
-            )
-            Divider()
-                .frame(height: 32)
-                .overlay(DS.Color.inkSecondary.opacity(0.2))
-            StatColumn(
-                label: "WASTED",
-                value: scoreLabel(100 - score.screenScore),
-                color: DS.Color.danger
-            )
-            Divider()
-                .frame(height: 32)
-                .overlay(DS.Color.inkSecondary.opacity(0.2))
-            StatColumn(
-                label: "TOP CAT",
-                value: topCategory,
-                color: DS.Color.ink
-            )
+            statCol(label: "PRODUCTIVE", value: score.productiveFormatted, color: DS.Color.accent)
+            Divider().frame(height: 30).overlay(Color.black.opacity(0.07))
+            statCol(label: "WASTED",     value: score.wastedFormatted,     color: DS.Color.danger)
+            Divider().frame(height: 30).overlay(Color.black.opacity(0.07))
+            statCol(label: "TOP APP",    value: shortApp(score.topWastedApp), color: DS.Color.ink)
         }
-        .padding(.horizontal, DS.Space.lg)
         .padding(.vertical, DS.Space.sm)
-        .background(DS.Color.bgSecondary)
+        .background(Color.black.opacity(0.03))
     }
 
-    private func scoreLabel(_ s: Int) -> String { "\(s)%" }
+    private func statCol(label: String, value: String, color: Color) -> some View {
+        VStack(spacing: 3) {
+            Text(label)
+                .font(DS.Font.label(7))
+                .foregroundStyle(DS.Color.inkSecondary)
+                .tracking(2)
+            Text(value.isEmpty ? "—" : value)
+                .font(DS.Font.data(12))
+                .foregroundStyle(color)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+    }
 
-    private var topCategory: String {
-        // Highest sub-score
-        let cats = [
-            ("Sleep",    score.sleepScore),
-            ("Physical", score.physicalScore),
-            ("Screen",   score.screenScore),
-            ("School",   score.schoolScore),
-            ("Homework", score.homeworkScore),
+    private func shortApp(_ bundleId: String) -> String {
+        let map: [String: String] = [
+            "com.zhiliaoapp.musically": "TikTok",
+            "com.burbn.instagram": "Instagram",
+            "com.google.ios.youtube": "YouTube",
+            "com.atebits.Tweetie2": "Twitter",
+            "com.netflix.Netflix": "Netflix",
+            "com.reddit.Reddit": "Reddit",
         ]
-        return cats.max(by: { $0.1 < $1.1 })?.0 ?? "—"
+        if bundleId.isEmpty { return "—" }
+        return map[bundleId] ?? (bundleId.components(separatedBy: ".").last ?? bundleId)
     }
 
-    // MARK: - Bars (productive vs wasted)
+    // MARK: - Bars
 
     private var barsSection: some View {
-        VStack(spacing: DS.Space.xs) {
+        VStack(spacing: DS.Space.xs + 2) {
             ScoreBar(
                 label: "Productive",
-                fill: barsAnimated ? Double(score.screenScore) / 100 : 0,
+                fill: barsAnimated ? score.productiveRatio : 0,
                 color: DS.Color.accent
             )
             ScoreBar(
                 label: "Wasted",
-                fill: barsAnimated ? Double(100 - score.screenScore) / 100 : 0,
+                fill: barsAnimated ? (score.totalScreenTime > 0 ? score.wastedTime / score.totalScreenTime : 0) : 0,
                 color: DS.Color.danger
             )
         }
@@ -187,15 +175,15 @@ struct RoastCard: View {
 
     private var calloutsSection: some View {
         FlowRowLayout(spacing: DS.Space.xs) {
-            ForEach(score.callouts) { callout in
-                CalloutTag(callout: callout)
+            ForEach(score.callouts) { c in
+                CalloutTag(callout: c)
             }
         }
         .padding(.horizontal, DS.Space.lg)
         .padding(.bottom, DS.Space.sm)
     }
 
-    // MARK: - Bottom row (streak)
+    // MARK: - Bottom row
 
     private var bottomRow: some View {
         HStack {
@@ -203,44 +191,23 @@ struct RoastCard: View {
                 HStack(spacing: DS.Space.xs) {
                     Text("🔥")
                     Text("\(streak) day streak")
-                        .font(DS.Font.data(11))
+                        .font(DS.Font.data(10))
                         .foregroundStyle(DS.Color.ink)
                 }
             } else {
                 Text("0 days — start tonight")
-                    .font(DS.Font.data(11))
+                    .font(DS.Font.data(10))
                     .foregroundStyle(DS.Color.inkSecondary)
             }
             Spacer()
-            Text("cooked")
-                .font(DS.Font.label(8))
+            Text("cooked.")
+                .font(DS.Font.label(7))
                 .foregroundStyle(DS.Color.inkSecondary)
                 .tracking(2)
         }
         .padding(.horizontal, DS.Space.lg)
         .padding(.vertical, DS.Space.md)
-        .background(DS.Color.bgSecondary)
-    }
-}
-
-// MARK: - Stat Column
-
-private struct StatColumn: View {
-    let label: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(label)
-                .font(DS.Font.label(7))
-                .foregroundStyle(DS.Color.inkSecondary)
-                .tracking(2)
-            Text(value)
-                .font(DS.Font.data(13))
-                .foregroundStyle(color)
-        }
-        .frame(maxWidth: .infinity)
+        .background(Color.black.opacity(0.03))
     }
 }
 
@@ -254,18 +221,16 @@ private struct ScoreBar: View {
     var body: some View {
         HStack(spacing: DS.Space.sm) {
             Text(label.uppercased())
-                .font(DS.Font.label(8))
+                .font(DS.Font.label(7))
                 .foregroundStyle(DS.Color.inkSecondary)
                 .tracking(2)
                 .frame(width: 72, alignment: .leading)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: DS.Radius.pill)
-                        .fill(DS.Color.trackBg)
+                    Capsule().fill(DS.Color.trackBg)
                         .frame(height: DS.RoastCard.barHeight)
-                    RoundedRectangle(cornerRadius: DS.Radius.pill)
-                        .fill(color)
+                    Capsule().fill(color)
                         .frame(
                             width: geo.size.width * max(0, min(1, fill)),
                             height: DS.RoastCard.barHeight
@@ -282,10 +247,9 @@ private struct ScoreBar: View {
 
 private struct CalloutTag: View {
     let callout: Callout
-
     var body: some View {
         HStack(spacing: 4) {
-            Text(callout.emoji).font(.system(size: 11))
+            Text(callout.emoji).font(.system(size: 10))
             Text(callout.text.uppercased())
                 .font(DS.Font.label(7))
                 .foregroundStyle(callout.type == .positive ? DS.Color.accent : DS.Color.danger)
@@ -293,20 +257,15 @@ private struct CalloutTag: View {
         }
         .padding(.horizontal, DS.Space.sm)
         .padding(.vertical, 5)
-        .background(
-            callout.type == .positive
-                ? DS.Color.calloutPositiveBg
-                : DS.Color.calloutNegativeBg
-        )
+        .background(callout.type == .positive ? DS.Color.calloutPositiveBg : DS.Color.calloutNegativeBg)
         .clipShape(Capsule())
     }
 }
 
-// MARK: - Flow row layout (wrapping)
+// MARK: - Flow Layout
 
 private struct FlowRowLayout: Layout {
     var spacing: CGFloat = 8
-
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let maxW = proposal.width ?? 0
         var x: CGFloat = 0, y: CGFloat = 0, rowH: CGFloat = 0
@@ -315,39 +274,25 @@ private struct FlowRowLayout: Layout {
             if x + sz.width > maxW, x > 0 { y += rowH + spacing; x = 0; rowH = 0 }
             x += sz.width + spacing; rowH = max(rowH, sz.height)
         }
-        return CGSize(width: maxW, height: y + rowH)
+        return .init(width: maxW, height: y + rowH)
     }
-
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.minX, y = bounds.minY, rowH: CGFloat = 0
         for sv in subviews {
             let sz = sv.sizeThatFits(.unspecified)
             if x + sz.width > bounds.maxX, x > bounds.minX { y += rowH + spacing; x = bounds.minX; rowH = 0 }
-            sv.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
+            sv.place(at: .init(x: x, y: y), proposal: .unspecified)
             x += sz.width + spacing; rowH = max(rowH, sz.height)
         }
     }
 }
 
 #Preview {
-    let score = DayScore()
-    score.overall       = 72
-    score.sleepScore    = 80
-    score.physicalScore = 90
-    score.screenScore   = 60
-    score.schoolScore   = 70
-    score.homeworkScore = 55
-    score.roast = "You hit the gym but spent 3 hours on TikTok. The weights don't cancel out the scroll. Tomorrow, close the app before you hit the couch."
-    score.tip   = "Put your phone charger across the room tonight."
-    score.callouts = [
-        Callout(type: .positive, emoji: "🔥", text: "Gym at 4pm"),
-        Callout(type: .negative, emoji: "💀", text: "Doomscrolled in bed"),
-        Callout(type: .positive, emoji: "✅", text: "Homework done"),
-    ]
-
-    return ScrollView {
-        RoastCard(score: score, profile: UserProfile(name: "Luka"), streak: 7)
-            .padding()
-    }
-    .background(DS.Color.bgSecondary)
+    let s = DayScore(overall: 72, productiveTime: 7200, wastedTime: 5400, topWastedApp: "com.zhiliaoapp.musically",
+                     roast: "You spent more time on TikTok than on anything productive. The algorithm won today.",
+                     tip: "Delete TikTok from your home screen tonight.")
+    s.callouts = [Callout(type: .positive, emoji: "✅", text: "2h productive"),
+                  Callout(type: .negative, emoji: "⏱️", text: "1.5h wasted")]
+    return ScrollView { RoastCard(score: s, profile: UserProfile(name: "Luka"), streak: 7).padding() }
+        .background(DS.Color.bg)
 }

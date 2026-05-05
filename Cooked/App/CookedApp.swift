@@ -7,41 +7,24 @@ struct CookedApp: App {
         WindowGroup {
             RootView()
         }
-        .modelContainer(for: [UserProfile.self, DayLog.self, DayScore.self])
+        .modelContainer(for: [UserProfile.self, DayScore.self])
     }
 }
 
-// MARK: - RootView — routes between onboarding and main app
+// MARK: - Root routing
 
 struct RootView: View {
     @Query private var profiles: [UserProfile]
-
-    private var onboardingComplete: Bool {
-        profiles.first?.onboardingCompleted == true
-    }
+    private var onboardingComplete: Bool { profiles.first?.onboardingCompleted == true }
 
     var body: some View {
         Group {
             if onboardingComplete {
-                // Placeholder — replaced in Step 5 (Dashboard)
-                ZStack {
-                    DS.Color.bg.ignoresSafeArea()
-                    VStack(spacing: DS.Space.md) {
-                        Text("COOKED")
-                            .font(DS.Font.hero())
-                            .foregroundStyle(DS.Color.ink)
-                        Text("Dashboard coming next.")
-                            .font(DS.Font.label())
-                            .foregroundStyle(DS.Color.inkSecondary)
-                            .labelStyle()
-                    }
-                }
+                DashboardView()
             } else {
-                OnboardingContainerView {
-                    // SwiftData @Query auto-refreshes — no manual state needed
-                }
+                OnboardingContainerView()
             }
         }
-        .animation(DS.Animation.cardEntrance, value: onboardingComplete)
+        .animation(DS.Animation.standard, value: onboardingComplete)
     }
 }

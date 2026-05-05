@@ -7,47 +7,48 @@ struct RoastView: View {
     let streak:  Int
 
     @Environment(\.dismiss) private var dismiss
-    @Query(sort: \DayScore.date, order: .reverse) private var allScores: [DayScore]
 
-    @State private var cardOffset:  CGFloat = 60
+    @State private var cardOffset:  CGFloat = 80
     @State private var cardOpacity: Double  = 0
-    @State private var cardScale:   CGFloat = 0.95
-    @State private var showBreakdown = false
-    @State private var showShare     = false
+    @State private var cardScale:   CGFloat = 0.93
+    @State private var showShare    = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            DS.Color.bg.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack(alignment: .top) {
+                DS.Color.bg.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: DS.Space.lg) {
-                    // Top bar
-                    topBar
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: DS.Space.lg) {
 
-                    // The card — animated entrance
-                    RoastCard(score: score, profile: profile, streak: streak)
-                        .offset(y: cardOffset)
-                        .opacity(cardOpacity)
-                        .scaleEffect(cardScale)
-                        .padding(.horizontal, (UIScreen.main.bounds.width - RoastCard.cardWidth) / 2)
+                        // ── Top bar ────────────────────────────────────────
+                        topBar
+                            .padding(.top, geo.safeAreaInsets.top + DS.Space.sm)
 
-                    // Tip
-                    tipSection
+                        // ── Card ───────────────────────────────────────────
+                        RoastCard(score: score, profile: profile, streak: streak)
+                            .offset(y: cardOffset)
+                            .opacity(cardOpacity)
+                            .scaleEffect(cardScale)
+                            .padding(.horizontal, (geo.size.width - RoastCard.cardWidth) / 2)
 
-                    // Actions
-                    actionButtons
+                        // ── Tip ────────────────────────────────────────────
+                        if !score.tip.isEmpty {
+                            tipCard
+                                .opacity(cardOpacity)
+                        }
 
-                    // Breakdown
-                    if showBreakdown {
-                        SubScoresView(score: score)
-                            .transition(.move(edge: .top).combined(with: .opacity))
+                        // ── Actions ────────────────────────────────────────
+                        actionButtons
+                            .opacity(cardOpacity)
+
+                        Spacer(minLength: geo.safeAreaInsets.bottom + DS.Space.xl)
                     }
-
-                    Spacer(minLength: DS.Space.xxl)
+                    .padding(.horizontal, DS.Space.lg)
                 }
-                .padding(.top, DS.Space.md)
             }
         }
+        .ignoresSafeArea(edges: .top)
         .onAppear { animateEntrance() }
         .sheet(isPresented: $showShare) {
             ShareCardView(score: score, profile: profile, streak: streak)
@@ -67,11 +68,12 @@ struct RoastView: View {
                 dismiss()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(DS.Color.ink)
                     .frame(width: 36, height: 36)
-                    .background(DS.Color.bgSecondary)
+                    .background(DS.Color.surface)
                     .clipShape(Circle())
+                    .shadow(color: .black.opacity(0.06), radius: 8, x: 0, y: 2)
             }
 
             Spacer()
@@ -81,82 +83,49 @@ struct RoastView: View {
                 .foregroundStyle(DS.Color.inkSecondary)
 
             Spacer()
-
-            // Balance button
             Color.clear.frame(width: 36, height: 36)
         }
-        .padding(.horizontal, DS.Space.lg)
     }
 
-    // MARK: - Tip section
+    // MARK: - Tip
 
-    private var tipSection: some View {
-        Group {
-            if !score.tip.isEmpty {
-                VStack(alignment: .leading, spacing: DS.Space.xs) {
-                    Text("TIP FOR TOMORROW")
-                        .labelStyle()
-                        .foregroundStyle(DS.Color.inkSecondary)
-
-                    Text(score.tip)
-                        .font(DS.Font.body(15))
-                        .foregroundStyle(DS.Color.ink)
-                        .lineSpacing(4)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(DS.Space.md)
-                .background(DS.Color.calloutPositiveBg)
-                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.tag))
-                .padding(.horizontal, DS.Space.lg)
-            }
+    private var tipCard: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            Text("TIP FOR TOMORROW")
+                .labelStyle()
+                .foregroundStyle(DS.Color.inkSecondary)
+            Text(score.tip)
+                .font(DS.Font.body(15))
+                .foregroundStyle(DS.Color.ink)
+                .lineSpacing(4)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DS.Space.md)
+        .background(DS.Color.calloutPositiveBg)
+        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.tag))
     }
 
     // MARK: - Action buttons
 
     private var actionButtons: some View {
         VStack(spacing: DS.Space.sm) {
-            // Share
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 showShare = true
             } label: {
-                Label("SHARE CARD →", systemImage: "square.and.arrow.up")
-                    .font(DS.Font.label(10))
-                    .foregroundStyle(DS.Color.darkText)
-                    .tracking(3)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, DS.Space.lg)
-                    .background(DS.Color.dark)
-                    .clipShape(Capsule())
-            }
-
-            // Breakdown toggle
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                withAnimation(DS.Animation.cardEntrance) {
-                    showBreakdown.toggle()
+                HStack(spacing: DS.Space.sm) {
+                    Image(systemName: "square.and.arrow.up")
+                    Text("SHARE CARD →")
                 }
-            } label: {
-                HStack(spacing: DS.Space.xs) {
-                    Text(showBreakdown ? "HIDE BREAKDOWN ▲" : "SEE BREAKDOWN ▼")
-                        .font(DS.Font.label(10))
-                        .foregroundStyle(DS.Color.ink)
-                        .tracking(3)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, DS.Space.md)
-                .background(DS.Color.bgSecondary)
-                .clipShape(Capsule())
+                .primaryButtonStyle()
             }
         }
-        .padding(.horizontal, DS.Space.lg)
     }
 
     // MARK: - Entrance animation
 
     private func animateEntrance() {
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.78)) {
+        withAnimation(.spring(response: 0.65, dampingFraction: 0.78)) {
             cardOffset  = 0
             cardOpacity = 1
             cardScale   = 1
@@ -165,15 +134,10 @@ struct RoastView: View {
 }
 
 #Preview {
-    let score = DayScore()
-    score.overall = 72; score.sleepScore = 80; score.physicalScore = 90
-    score.screenScore = 60; score.schoolScore = 70; score.homeworkScore = 55
-    score.roast = "You crushed the gym but your screen time was embarrassing. The protein won't offset the TikTok spiral."
-    score.tip   = "Put your phone in another room tonight."
-    score.callouts = [
-        Callout(type: .positive, emoji: "🔥", text: "Gym at 4pm"),
-        Callout(type: .negative, emoji: "💀", text: "Doomscrolled in bed"),
-    ]
-    return RoastView(score: score, profile: UserProfile(name: "Luka"), streak: 7)
-        .modelContainer(for: DayScore.self, inMemory: true)
+    let s = DayScore(overall: 72, productiveTime: 7200, wastedTime: 5400,
+                     roast: "You spent more time on TikTok than on anything productive.",
+                     tip: "Delete TikTok from your home screen tonight.")
+    s.callouts = [Callout(type: .positive, emoji: "✅", text: "2h productive")]
+    return RoastView(score: s, profile: UserProfile(name: "Luka"), streak: 7)
+        .modelContainer(for: [DayScore.self], inMemory: true)
 }

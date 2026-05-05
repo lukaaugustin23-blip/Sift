@@ -1,15 +1,23 @@
 import SwiftUI
 
-// MARK: - App category state
+// MARK: - App category
 
 enum AppCategory: String, CaseIterable {
     case productive, wasted, ignore
 
-    var label: String {
+    var emoji: String {
         switch self {
         case .productive: return "✅"
         case .wasted:     return "🚫"
         case .ignore:     return "—"
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .productive: return "Good"
+        case .wasted:     return "Wasted"
+        case .ignore:     return "Ignore"
         }
     }
 
@@ -22,7 +30,7 @@ enum AppCategory: String, CaseIterable {
     }
 }
 
-// MARK: - Preset app list
+// MARK: - Preset apps
 
 struct AppEntry: Identifiable {
     let id = UUID()
@@ -32,7 +40,7 @@ struct AppEntry: Identifiable {
 }
 
 private let presetApps: [AppEntry] = [
-    // Social / Entertainment (default wasted)
+    // Wasted defaults
     AppEntry(name: "TikTok",       bundleId: "com.zhiliaoapp.musically",     defaultCategory: .wasted),
     AppEntry(name: "Instagram",    bundleId: "com.burbn.instagram",          defaultCategory: .wasted),
     AppEntry(name: "Snapchat",     bundleId: "com.toyopagroup.picaboo",      defaultCategory: .wasted),
@@ -42,8 +50,7 @@ private let presetApps: [AppEntry] = [
     AppEntry(name: "Discord",      bundleId: "com.hammerandchisel.discord",  defaultCategory: .wasted),
     AppEntry(name: "Reddit",       bundleId: "com.reddit.Reddit",            defaultCategory: .wasted),
     AppEntry(name: "BeReal",       bundleId: "AlexisBarreyat.BeReal",        defaultCategory: .wasted),
-
-    // Productivity (default productive)
+    // Productive defaults
     AppEntry(name: "Notion",       bundleId: "notion.id",                    defaultCategory: .productive),
     AppEntry(name: "Khan Academy", bundleId: "org.khanacademy.Khan-Academy", defaultCategory: .productive),
     AppEntry(name: "Duolingo",     bundleId: "com.duolingo.DuolingoMobile",  defaultCategory: .productive),
@@ -51,17 +58,15 @@ private let presetApps: [AppEntry] = [
     AppEntry(name: "Kindle",       bundleId: "com.amazon.Lassen",            defaultCategory: .productive),
     AppEntry(name: "Headspace",    bundleId: "com.getsomeheadspace.android", defaultCategory: .productive),
     AppEntry(name: "Google Docs",  bundleId: "com.google.GoogleDocs",        defaultCategory: .productive),
-    AppEntry(name: "Xcode",        bundleId: "com.apple.dt.Xcode",           defaultCategory: .productive),
-
-    // Neutral (default ignore)
-    AppEntry(name: "Apple Maps",   bundleId: "com.apple.Maps",               defaultCategory: .ignore),
+    // Ignore defaults
     AppEntry(name: "Messages",     bundleId: "com.apple.MobileSMS",          defaultCategory: .ignore),
     AppEntry(name: "Spotify",      bundleId: "com.spotify.client",           defaultCategory: .ignore),
     AppEntry(name: "Apple Music",  bundleId: "com.apple.Music",              defaultCategory: .ignore),
+    AppEntry(name: "Apple Maps",   bundleId: "com.apple.Maps",               defaultCategory: .ignore),
     AppEntry(name: "Camera",       bundleId: "com.apple.camera",             defaultCategory: .ignore),
 ]
 
-// MARK: - AppCategorizationView
+// MARK: - View
 
 struct AppCategorizationView: View {
     @Binding var productiveIds: [String]
@@ -72,101 +77,93 @@ struct AppCategorizationView: View {
     @State private var categories: [String: AppCategory] = [:]
 
     var body: some View {
-        ZStack {
-            DS.Color.bg.ignoresSafeArea()
+        GeometryReader { geo in
+            ZStack(alignment: .bottom) {
+                DS.Color.bg.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Legend
-                legendBar
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: DS.Space.xl) {
 
-                // App list
-                ScrollView {
-                    VStack(spacing: 0) {
-                        ForEach(presetApps) { app in
-                            AppRow(
-                                app: app,
-                                category: categories[app.bundleId] ?? app.defaultCategory
-                            ) { newCategory in
-                                withAnimation(DS.Animation.buttonPress) {
-                                    categories[app.bundleId] = newCategory
+                        // ── Header ─────────────────────────────────────────
+                        VStack(alignment: .leading, spacing: DS.Space.xs) {
+                            Text("APP CATEGORIES")
+                                .labelStyle()
+                                .foregroundStyle(DS.Color.inkSecondary)
+                            Text("What counts as\nproductive for you?")
+                                .font(DS.Font.hero(min(geo.size.width * 0.115, 46)))
+                                .foregroundStyle(DS.Color.ink)
+                                .lineSpacing(2)
+                        }
+
+                        // ── Legend ─────────────────────────────────────────
+                        HStack(spacing: DS.Space.lg) {
+                            ForEach(AppCategory.allCases, id: \.self) { cat in
+                                HStack(spacing: 6) {
+                                    Text(cat.emoji).font(.system(size: 13))
+                                    Text(cat.label.uppercased())
+                                        .font(DS.Font.label(8))
+                                        .foregroundStyle(cat.color)
+                                        .tracking(2)
                                 }
                             }
+                        }
 
-                            if app.id != presetApps.last?.id {
-                                Divider()
-                                    .overlay(DS.Color.inkSecondary.opacity(0.1))
-                                    .padding(.leading, DS.Space.lg)
+                        // ── App list ───────────────────────────────────────
+                        VStack(spacing: 0) {
+                            ForEach(Array(presetApps.enumerated()), id: \.element.id) { idx, app in
+                                AppRow(
+                                    app: app,
+                                    category: categories[app.bundleId] ?? app.defaultCategory,
+                                    onChange: { newCat in
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        withAnimation(DS.Animation.buttonPress) {
+                                            categories[app.bundleId] = newCat
+                                        }
+                                    }
+                                )
+                                if idx < presetApps.count - 1 {
+                                    Divider()
+                                        .overlay(Color.black.opacity(0.05))
+                                        .padding(.leading, DS.Space.md)
+                                }
                             }
                         }
+                        .cardStyle()
+
+                        Spacer(minLength: 140)
                     }
-                    .background(DS.Color.bgSecondary)
-                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.tag))
                     .padding(.horizontal, DS.Space.lg)
-                    .padding(.vertical, DS.Space.md)
-                    .padding(.bottom, 100)
+                    .padding(.top, geo.size.height * 0.06)
                 }
 
-                // Continue
-                Button(action: {
-                    saveCategories()
-                    onContinue()
-                }) {
-                    Text("CONTINUE →")
-                        .font(DS.Font.label(11))
-                        .foregroundStyle(DS.Color.darkText)
-                        .tracking(3)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, DS.Space.lg)
-                        .background(DS.Color.dark)
-                        .clipShape(Capsule())
+                // ── Continue ───────────────────────────────────────────────
+                VStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [DS.Color.bg.opacity(0), DS.Color.bg],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                    .frame(height: 40)
+                    .allowsHitTesting(false)
+
+                    Button(action: {
+                        saveCategories()
+                        onContinue()
+                    }) {
+                        Text("DONE →")
+                            .primaryButtonStyle()
+                    }
+                    .padding(.horizontal, DS.Space.lg)
+                    .padding(.bottom, geo.safeAreaInsets.bottom + DS.Space.md)
+                    .background(DS.Color.bg)
                 }
-                .padding(.horizontal, DS.Space.lg)
-                .padding(.bottom, DS.Space.xxl)
-                .padding(.top, DS.Space.md)
-                .background(DS.Color.bg)
             }
+            .ignoresSafeArea(edges: .bottom)
         }
         .onAppear { initCategories() }
-        .navigationBarHidden(true)
     }
-
-    // MARK: - Legend
-
-    private var legendBar: some View {
-        VStack(alignment: .leading, spacing: DS.Space.xs) {
-            Text("APP CATEGORIES")
-                .labelStyle()
-                .foregroundStyle(DS.Color.inkSecondary)
-
-            Text("Mark each app productive, wasted, or ignore.")
-                .font(DS.Font.body(14))
-                .foregroundStyle(DS.Color.ink)
-
-            HStack(spacing: DS.Space.lg) {
-                ForEach(AppCategory.allCases, id: \.self) { cat in
-                    HStack(spacing: DS.Space.xs) {
-                        Text(cat.label).font(.system(size: 14))
-                        Text(cat.rawValue.uppercased())
-                            .font(DS.Font.label(9))
-                            .foregroundStyle(cat.color)
-                            .tracking(2)
-                    }
-                }
-            }
-            .padding(.top, 2)
-        }
-        .padding(.horizontal, DS.Space.lg)
-        .padding(.top, DS.Space.xl)
-        .padding(.bottom, DS.Space.sm)
-    }
-
-    // MARK: - Helpers
 
     private func initCategories() {
-        for app in presetApps {
-            categories[app.bundleId] = app.defaultCategory
-        }
-        // Restore any previously set values
+        for app in presetApps { categories[app.bundleId] = app.defaultCategory }
         for id in productiveIds { categories[id] = .productive }
         for id in wastedIds     { categories[id] = .wasted }
     }
@@ -186,32 +183,23 @@ private struct AppRow: View {
 
     var body: some View {
         HStack(spacing: DS.Space.md) {
-            // App name
             Text(app.name)
                 .font(DS.Font.body(15))
                 .foregroundStyle(DS.Color.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            // 3-way segmented control
             HStack(spacing: 4) {
                 ForEach(AppCategory.allCases, id: \.self) { cat in
-                    Button {
-                        onChange(cat)
-                    } label: {
-                        Text(cat.label)
-                            .font(.system(size: 13))
-                            .frame(width: 36, height: 32)
-                            .background(
-                                category == cat
-                                    ? cat.color.opacity(0.15)
-                                    : Color.clear
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    Button { onChange(cat) } label: {
+                        Text(cat.emoji)
+                            .font(.system(size: 15))
+                            .frame(width: 42, height: 36)
+                            .background(category == cat ? cat.color.opacity(0.12) : Color.clear)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 6)
+                                RoundedRectangle(cornerRadius: 10)
                                     .stroke(
-                                        category == cat ? cat.color : Color.clear,
+                                        category == cat ? cat.color : Color.black.opacity(0.08),
                                         lineWidth: 1
                                     )
                             )
@@ -227,9 +215,5 @@ private struct AppRow: View {
 }
 
 #Preview {
-    AppCategorizationView(
-        productiveIds: .constant([]),
-        wastedIds:     .constant([]),
-        onContinue:    {}
-    )
+    AppCategorizationView(productiveIds: .constant([]), wastedIds: .constant([]), onContinue: {})
 }
