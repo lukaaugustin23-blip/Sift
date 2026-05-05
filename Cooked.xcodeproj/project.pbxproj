@@ -20,6 +20,7 @@
 		3894487632A90D028E0439BC /* RoastResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = F724DAD2F14CB6D52A613C6E /* RoastResult.swift */; };
 		3C07DBCAA3FC59DDB7108DDF /* SpaceMono-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 49361D220D39C839E5D3233C /* SpaceMono-Bold.ttf */; };
 		3F648BCFC42411D8D8904216 /* DMSans-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = EC25CCD30E96E5A3ABC2585C /* DMSans-Regular.ttf */; };
+		4BA1919D173BBD40EEC41C15 /* FakeData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77151F3EAFAB259D2E066B /* FakeData.swift */; };
 		59D57F8682AADD38A665FBA5 /* Syne-ExtraBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = DBECD06F97480A6460A3ADC9 /* Syne-ExtraBold.ttf */; };
 		66F7B75AA7C6471E3BCE771F /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DF0F186B9A9715E83083904 /* Extensions.swift */; };
 		68B34CC0FBC839250A084B31 /* RateLimitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CA95F4DB4683B43B1EDDD3 /* RateLimitService.swift */; };
@@ -39,6 +40,7 @@
 		E3DC952E26534BB412933D80 /* ShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC4240793093EF500F1B4DB /* ShareCardView.swift */; };
 		E79B4F7BEC3BB95F2886CC47 /* DMSans-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 7CAB7E61F64EA9F0E000C115 /* DMSans-Light.ttf */; };
 		F29C099D885716B915C0B79C /* DMSans-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5533346D0299CBC1C4C7A4C4 /* DMSans-Medium.ttf */; };
+		F3CF21C9C9BC17564CDF7B3B /* MorningRoastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30DD97DD1A09E13CC9626777 /* MorningRoastOverlay.swift */; };
 		F75A66D28E5162E1E1714716 /* PlusJakartaSans-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8CB97E940C5F60CBDC882D76 /* PlusJakartaSans-SemiBold.ttf */; };
 /* End PBXBuildFile section */
 
@@ -49,6 +51,7 @@
 		218CED0724A7E20739196132 /* Enums.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Enums.swift; sourceTree = "<group>"; };
 		2555656BE3DA7CB6D2582A0F /* PlusJakartaSans-ExtraBoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-ExtraBoldItalic.ttf"; sourceTree = "<group>"; };
 		2CAFCA33D250980D9381B39E /* DayScore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayScore.swift; sourceTree = "<group>"; };
+		30DD97DD1A09E13CC9626777 /* MorningRoastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MorningRoastOverlay.swift; sourceTree = "<group>"; };
 		331AA7DDA67CA3A6E7CC6586 /* SpaceMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "SpaceMono-Regular.ttf"; sourceTree = "<group>"; };
 		33CA95F4DB4683B43B1EDDD3 /* RateLimitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitService.swift; sourceTree = "<group>"; };
 		344F6E68B54D8D4E30C2C7C4 /* PlusJakartaSans-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-ExtraBold.ttf"; sourceTree = "<group>"; };
@@ -70,6 +73,7 @@
 		9F96706BB58C4834117469F7 /* PlusJakartaSans-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "PlusJakartaSans-Italic.ttf"; sourceTree = "<group>"; };
 		A8CE8D68DD1ECCF433FB0D2B /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		AC635E24D0422DAC1217DF27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		BA77151F3EAFAB259D2E066B /* FakeData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FakeData.swift; sourceTree = "<group>"; };
 		BE2CA63E05AE27C8BF0E86FE /* RoastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoastView.swift; sourceTree = "<group>"; };
 		D9D58489C58EAB4FC89DFFB6 /* CookedApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookedApp.swift; sourceTree = "<group>"; };
 		DBECD06F97480A6460A3ADC9 /* Syne-ExtraBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Syne-ExtraBold.ttf"; sourceTree = "<group>"; };
@@ -87,6 +91,7 @@
 			children = (
 				2CAFCA33D250980D9381B39E /* DayScore.swift */,
 				218CED0724A7E20739196132 /* Enums.swift */,
+				BA77151F3EAFAB259D2E066B /* FakeData.swift */,
 				F724DAD2F14CB6D52A613C6E /* RoastResult.swift */,
 				57F6124AAAFB627F50E98D60 /* UserProfile.swift */,
 			);
@@ -169,6 +174,7 @@
 		868823A05F680BEF9C013423 /* Roast */ = {
 			isa = PBXGroup;
 			children = (
+				30DD97DD1A09E13CC9626777 /* MorningRoastOverlay.swift */,
 				04899AFBC0CB24D3075CEDF1 /* RoastCard.swift */,
 				BE2CA63E05AE27C8BF0E86FE /* RoastView.swift */,
 				FBC4240793093EF500F1B4DB /* ShareCardView.swift */,
@@ -306,6 +312,8 @@
 				1FEBD7E608A2371DB4DABE0A /* DesignTokens.swift in Sources */,
 				8055691E03CF9C7792A915D0 /* Enums.swift in Sources */,
 				66F7B75AA7C6471E3BCE771F /* Extensions.swift in Sources */,
+				4BA1919D173BBD40EEC41C15 /* FakeData.swift in Sources */,
+				F3CF21C9C9BC17564CDF7B3B /* MorningRoastOverlay.swift in Sources */,
 				A466669984FFB09D0DCEF4B0 /* OnboardingContainerView.swift in Sources */,
 				68B34CC0FBC839250A084B31 /* RateLimitService.swift in Sources */,
 				376E4FEB0E21E7AFEE7697A9 /* RoastCard.swift in Sources */,

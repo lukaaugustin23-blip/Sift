@@ -19,7 +19,7 @@ struct RootView: View {
 
     var body: some View {
         Group {
-            if onboardingComplete {
+            if true { // DEMO
                 DashboardView()
             } else {
                 OnboardingContainerView()
