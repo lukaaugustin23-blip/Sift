@@ -1,0 +1,4 @@
+
+# Secrets — never commit real API keys
+Cooked/Services/Secrets.swift
+*.env
