@@ -1,86 +1,66 @@
 import SwiftUI
 
-// MARK: - Morning Roast Overlay
-// Full-screen overlay that pops up on first open.
-// Spring slide-up from bottom + rotation + scale + pulsing fire glow.
-
 struct MorningRoastOverlay: View {
-    let score:   DayScore
-    let profile: UserProfile
-    let streak:  Int
+    let score:     DayScore
+    let profile:   UserProfile
+    let streak:    Int
     let onDismiss: () -> Void
 
-    // Animation states
     @State private var cardOffset:   CGFloat = 800
     @State private var cardRotation: Double  = 2.0
     @State private var cardScale:    CGFloat = 0.90
     @State private var bgOpacity:    CGFloat = 0
     @State private var glowRadius:   CGFloat = 18
     @State private var glowOpacity:  CGFloat = 0.45
+    @State private var dragOffset:   CGFloat = 0
+    @State private var showShare     = false
+    @State private var rendered:     UIImage? = nil
+    @State private var isRendering   = false
 
-    @State private var showShare = false
-    @State private var rendered: UIImage? = nil
-    @State private var isRendering = false
-
-    // Swipe-to-dismiss
-    @State private var dragOffset: CGFloat = 0
-
-    private var isGoodScore: Bool { score.overall >= 60 }
-    private var scoreGrad: LinearGradient { isGoodScore ? DS.Gradient.teal : DS.Gradient.fire }
-    private var borderClr: Color { isGoodScore ? DS.Color.tealStart : DS.Color.fireStart }
+    private var isGood:    Bool              { score.overall >= 60 }
+    private var scoreGrad: LinearGradient    { isGood ? DS.Gradient.teal : DS.Gradient.fire }
+    private var borderClr: Color             { isGood ? DS.Color.tealStart : DS.Color.fireStart }
+    private var topApp:    String            {
+        score.topWastedApp.isEmpty ? "Unknown" : score.topWastedApp
+    }
 
     var body: some View {
         ZStack {
-            // Dim background
-            Color.black.opacity(0.75 * bgOpacity)
+            Color.black.opacity(0.78 * bgOpacity)
                 .ignoresSafeArea()
-                .onTapGesture { } // absorb taps behind card
 
-            // Card
             ScrollView(showsIndicators: false) {
                 cardContent
                     .padding(.horizontal, DS.Space.lg)
-                    .padding(.top, DS.Space.xl)
+                    .padding(.top, DS.Space.xl + DS.Space.sm)
                     .padding(.bottom, DS.Space.xxl)
             }
             .offset(y: cardOffset + dragOffset)
             .rotationEffect(.degrees(cardRotation))
             .scaleEffect(cardScale)
-            .shadow(
-                color: DS.Color.fireStart.opacity(glowOpacity),
-                radius: glowRadius, x: 0, y: 0
-            )
+            .shadow(color: DS.Color.fireStart.opacity(glowOpacity), radius: glowRadius, x: 0, y: 0)
             .gesture(
                 DragGesture()
                     .onChanged { v in
                         if v.translation.height > 0 { dragOffset = v.translation.height }
                     }
                     .onEnded { v in
-                        if v.translation.height > 110 {
-                            dismiss()
-                        } else {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                                dragOffset = 0
-                            }
+                        if v.translation.height > 110 { dismiss() }
+                        else {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) { dragOffset = 0 }
                         }
                     }
             )
         }
         .onAppear {
-            // 0.3s delay then spring in
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 withAnimation(.spring(response: 0.62, dampingFraction: 0.72)) {
-                    cardOffset   = 0
-                    cardRotation = 0
-                    cardScale    = 1.0
-                    bgOpacity    = 1
+                    cardOffset = 0; cardRotation = 0; cardScale = 1; bgOpacity = 1
                 }
             }
-            // Continuous glow pulse
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
                 withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                    glowRadius  = 38
-                    glowOpacity = 0.75
+                    glowRadius = 38; glowOpacity = 0.72
                 }
             }
         }
@@ -91,30 +71,26 @@ struct MorningRoastOverlay: View {
         }
     }
 
-    // MARK: - Card content
+    // MARK: - Card
 
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header bar
             headerRow
 
-            VStack(alignment: .leading, spacing: DS.Space.lg) {
-                // Score block
+            VStack(alignment: .leading, spacing: DS.Space.xl) {
+                // Score
                 scoreBlock
 
-                // Roast section
+                // Roast
                 roastSection
 
-                // Callout tags
-                calloutTags
+                // Callout tags — 2 per row grid
+                calloutGrid
 
-                // Stats row
-                statsRow
-
-                // Bars
+                // Bars (with top app label above)
                 barsSection
 
-                // Bottom row
+                // Bottom
                 bottomRow
             }
             .padding(DS.Space.lg)
@@ -131,30 +107,19 @@ struct MorningRoastOverlay: View {
 
     private var headerRow: some View {
         HStack {
-            // Logo
             HStack(spacing: 0) {
-                Text("cook")
-                    .font(DS.Font.display(18))
-                    .foregroundStyle(DS.Color.text1)
-                Text("ed.")
-                    .font(DS.Font.display(18))
-                    .gradientText(DS.Gradient.fire)
+                Text("cook").font(DS.Font.display(18)).foregroundStyle(DS.Color.text1)
+                Text("ed.").font(DS.Font.display(18)).gradientText(DS.Gradient.fire)
             }
             Spacer()
-            // Date
             Text(score.date, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
                 .font(DS.Font.body(12))
                 .foregroundStyle(DS.Color.text3)
             Spacer()
-            // X dismiss
             Button(action: dismiss) {
                 ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(width: 30, height: 30)
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(DS.Color.text2)
+                    Circle().fill(Color.white.opacity(0.08)).frame(width: 30, height: 30)
+                    Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).foregroundStyle(DS.Color.text2)
                 }
             }
         }
@@ -170,16 +135,14 @@ struct MorningRoastOverlay: View {
 
     private var scoreBlock: some View {
         HStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(score.overall)")
-                        .font(DS.Font.display(88))
-                        .gradientText(scoreGrad)
-                    Text("/100")
-                        .font(DS.Font.display(20))
-                        .foregroundStyle(DS.Color.text3)
-                        .padding(.bottom, 10)
-                }
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("\(score.overall)")
+                    .font(DS.Font.display(88))
+                    .gradientText(scoreGrad)
+                Text("/100")
+                    .font(DS.Font.display(20))
+                    .foregroundStyle(DS.Color.text3)
+                    .padding(.bottom, 10)
             }
             Spacer()
             ZStack {
@@ -216,90 +179,78 @@ struct MorningRoastOverlay: View {
         }
     }
 
-    // MARK: - Callout tags
+    // MARK: - Callout grid (2 per row)
 
-    private var calloutTags: some View {
-        FlowLayout(spacing: DS.Space.xs) {
+    private var calloutGrid: some View {
+        LazyVGrid(
+            columns: [GridItem(.flexible()), GridItem(.flexible())],
+            spacing: DS.Space.sm
+        ) {
             ForEach(score.callouts) { callout in
-                HStack(spacing: 4) {
-                    Text(callout.emoji)
-                        .font(.system(size: 11))
+                HStack(spacing: 6) {
+                    Text(callout.emoji).font(.system(size: 13))
                     Text(callout.text)
-                        .font(DS.Font.label(11))
+                        .font(DS.Font.label(12))
                         .if(callout.type == .negative) { $0.gradientText(DS.Gradient.fire) }
-                        .if(callout.type == .positive) { $0.gradientText(DS.Gradient.teal) }
+                        .if(callout.type == .positive)  { $0.gradientText(DS.Gradient.teal) }
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Spacer(minLength: 0)
                 }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
+                .padding(.horizontal, DS.Space.sm + 2)
+                .padding(.vertical, DS.Space.sm)
                 .background(
                     callout.type == .negative
-                        ? DS.Color.fireStart.opacity(0.12)
-                        : DS.Color.tealStart.opacity(0.12)
+                        ? DS.Color.fireStart.opacity(0.10)
+                        : DS.Color.tealStart.opacity(0.10)
                 )
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.tag + 2))
                 .overlay(
-                    Capsule().strokeBorder(
-                        callout.type == .negative
-                            ? DS.Color.fireStart.opacity(0.25)
-                            : DS.Color.tealStart.opacity(0.25),
-                        lineWidth: 1
-                    )
+                    RoundedRectangle(cornerRadius: DS.Radius.tag + 2)
+                        .strokeBorder(
+                            callout.type == .negative
+                                ? DS.Color.fireStart.opacity(0.22)
+                                : DS.Color.tealStart.opacity(0.22),
+                            lineWidth: 1
+                        )
                 )
             }
         }
     }
 
-    // MARK: - Stats row
-
-    private var statsRow: some View {
-        HStack(spacing: DS.Space.sm) {
-            miniStat("PRODUCTIVE", score.productiveFormatted, DS.Gradient.teal)
-            miniStat("WASTED",     score.wastedFormatted,     DS.Gradient.fire)
-            miniStat("TOP APP",    score.topWastedApp.isEmpty ? "—" : score.topWastedApp, DS.Gradient.fire)
-        }
-    }
-
-    private func miniStat(_ label: String, _ value: String, _ grad: LinearGradient) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(DS.Font.label(8))
-                .foregroundStyle(DS.Color.text3)
-                .kerning(1)
-            Text(value)
-                .font(DS.Font.display(13))
-                .gradientText(grad)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DS.Space.md)
-        .background(DS.Color.bg)
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.inner))
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.inner)
-                .strokeBorder(DS.Color.cardBorder, lineWidth: 1)
-        )
-    }
-
-    // MARK: - Bars
+    // MARK: - Bars (no stat boxes, top app label above)
 
     private var barsSection: some View {
-        VStack(spacing: DS.Space.md) {
-            animBar("Productive", score.productiveFormatted,
-                    CGFloat(score.productiveTime / max(score.totalScreenTime, 1)),
-                    DS.Gradient.teal)
-            Divider().background(DS.Color.cardBorder)
-            animBar("Wasted", score.wastedFormatted,
-                    CGFloat(score.wastedTime / max(score.totalScreenTime, 1)),
-                    DS.Gradient.fire)
+        VStack(alignment: .leading, spacing: DS.Space.md) {
+            // Top app label
+            HStack(spacing: DS.Space.xs) {
+                Text("TOP APP")
+                    .font(DS.Font.label(9))
+                    .foregroundStyle(DS.Color.text3)
+                    .kerning(1.2)
+                Text(topApp)
+                    .font(DS.Font.label(9))
+                    .gradientText(DS.Gradient.fire)
+            }
+
+            // Bars
+            VStack(spacing: DS.Space.md) {
+                animBar("Productive", score.productiveFormatted,
+                        CGFloat(score.productiveTime / max(score.totalScreenTime, 1)),
+                        DS.Gradient.teal)
+                Divider().background(DS.Color.cardBorder)
+                animBar("Wasted", score.wastedFormatted,
+                        CGFloat(score.wastedTime / max(score.totalScreenTime, 1)),
+                        DS.Gradient.fire)
+            }
+            .padding(DS.Space.md)
+            .background(DS.Color.bg)
+            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.inner))
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.inner)
+                    .strokeBorder(DS.Color.cardBorder, lineWidth: 1)
+            )
         }
-        .padding(DS.Space.md)
-        .background(DS.Color.bg)
-        .clipShape(RoundedRectangle(cornerRadius: DS.Radius.inner))
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.inner)
-                .strokeBorder(DS.Color.cardBorder, lineWidth: 1)
-        )
     }
 
     private func animBar(_ label: String, _ value: String, _ ratio: CGFloat, _ grad: LinearGradient) -> some View {
@@ -314,7 +265,7 @@ struct MorningRoastOverlay: View {
                     Capsule().fill(DS.Color.text3.opacity(0.12)).frame(height: 6)
                     Capsule().fill(grad)
                         .frame(width: max(geo.size.width * ratio, ratio > 0 ? 8 : 0), height: 6)
-                        .animation(.spring(response: 1.0, dampingFraction: 0.75).delay(0.7), value: ratio)
+                        .animation(.spring(response: 1.0, dampingFraction: 0.75).delay(0.8), value: ratio)
                 }
             }
             .frame(height: 6)
@@ -325,21 +276,12 @@ struct MorningRoastOverlay: View {
 
     private var bottomRow: some View {
         HStack(spacing: DS.Space.md) {
-            // Streak
             HStack(spacing: DS.Space.xs) {
-                Text("🔥")
-                    .font(.system(size: 16))
-                HStack(spacing: 4) {
-                    Text("\(streak)")
-                        .font(DS.Font.display(15))
-                        .gradientText(DS.Gradient.fire)
-                    Text("day streak")
-                        .font(DS.Font.body(12))
-                        .foregroundStyle(DS.Color.text3)
-                }
+                Text("🔥").font(.system(size: 16))
+                Text("\(streak)").font(DS.Font.display(15)).gradientText(DS.Gradient.fire)
+                Text("day streak").font(DS.Font.body(12)).foregroundStyle(DS.Color.text3)
             }
             Spacer()
-            // Share button
             Button {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 Task { await renderAndShare() }
@@ -348,11 +290,9 @@ struct MorningRoastOverlay: View {
                     if isRendering {
                         ProgressView().progressViewStyle(.circular).tint(.white).scaleEffect(0.7)
                     } else {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 12, weight: .semibold))
+                        Image(systemName: "square.and.arrow.up").font(.system(size: 12, weight: .semibold))
                     }
-                    Text(isRendering ? "Rendering..." : "Share Card →")
-                        .font(DS.Font.label(12))
+                    Text(isRendering ? "Rendering..." : "Share Card →").font(DS.Font.label(12))
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, DS.Space.md)
@@ -369,18 +309,14 @@ struct MorningRoastOverlay: View {
     private func dismiss() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         withAnimation(.spring(response: 0.42, dampingFraction: 0.82)) {
-            cardOffset  = 900
-            cardRotation = -1
-            bgOpacity   = 0
+            cardOffset = 900; cardRotation = -1; bgOpacity = 0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { onDismiss() }
     }
 
     @MainActor
     private func renderAndShare() async {
-        isRendering = true
-        defer { isRendering = false }
-
+        isRendering = true; defer { isRendering = false }
         let card = RoastCard(score: score, profile: profile, streak: streak, isForExport: true)
             .frame(width: 390, height: 700)
         let renderer = ImageRenderer(content: card)
@@ -393,44 +329,7 @@ struct MorningRoastOverlay: View {
     }
 }
 
-// MARK: - Flow layout for callout chips
-
-private struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.width ?? 0
-        var height: CGFloat = 0; var x: CGFloat = 0; var rowH: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x + size.width > width && x > 0 {
-                height += rowH + spacing; x = 0; rowH = 0
-            }
-            rowH = max(rowH, size.height); x += size.width + spacing
-        }
-        height += rowH
-        return CGSize(width: width, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var x = bounds.minX; var y = bounds.minY; var rowH: CGFloat = 0
-        for view in subviews {
-            let size = view.sizeThatFits(.unspecified)
-            if x + size.width > bounds.maxX && x > bounds.minX {
-                y += rowH + spacing; x = bounds.minX; rowH = 0
-            }
-            view.place(at: CGPoint(x: x, y: y), proposal: .unspecified)
-            rowH = max(rowH, size.height); x += size.width + spacing
-        }
-    }
-}
-
 #Preview {
-    MorningRoastOverlay(
-        score: FakeData.score,
-        profile: FakeData.profile,
-        streak: FakeData.streak,
-        onDismiss: {}
-    )
-    .background(DS.Color.bg)
+    MorningRoastOverlay(score: FakeData.score, profile: FakeData.profile, streak: FakeData.streak, onDismiss: {})
+        .background(DS.Color.bg)
 }

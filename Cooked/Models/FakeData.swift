@@ -10,7 +10,7 @@ enum FakeData {
         productiveTime:  1.5 * 3600,
         wastedTime:      8.5 * 3600,
         topWastedApp:    "TikTok",
-        roast:           "4hrs on TikTok and somehow an hour on Wallet — are you just checking how broke you are? Your Xcode was open for exactly 60 minutes, which is adorable. Put the phone down.",
+        roast:           "4hrs on TikTok and somehow an hour on Wallet. Are you just checking how broke you are? Your Xcode was open for exactly 60 minutes, which is adorable. Put the phone down.",
         tip:             "Try keeping TikTok under 1hr tomorrow.",
         callouts: [
             Callout(type: .negative, emoji: "💀", text: "TikTok 4h"),

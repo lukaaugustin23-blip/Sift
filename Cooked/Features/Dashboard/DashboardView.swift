@@ -2,13 +2,12 @@ import SwiftUI
 import SwiftData
 
 struct DashboardView: View {
+    @Binding var showRoastOverlay: Bool
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \UserProfile.createdAt)          private var profiles:     [UserProfile]
     @Query(sort: \DayScore.date, order: .reverse) private var recentScores: [DayScore]
 
-    // Demo: overlay shown on open; tapping yesterday card re-opens it
-    @State private var showRoastOverlay = true
-    @State private var appeared         = false
+    @State private var appeared = false
 
     // Use fake data for demo
     private var demoScore:   DayScore    { FakeData.score }
@@ -67,16 +66,6 @@ struct DashboardView: View {
                 .padding(.horizontal, DS.Space.lg)
             }
 
-            // Morning roast overlay
-            if showRoastOverlay {
-                MorningRoastOverlay(
-                    score:    demoScore,
-                    profile:  demoProfile,
-                    streak:   demoStreak,
-                    onDismiss: { showRoastOverlay = false }
-                )
-                .transition(.opacity)
-            }
         }
         .onAppear {
             withAnimation(DS.Anim.spring.delay(0.08)) { appeared = true }
@@ -170,13 +159,13 @@ struct DashboardView: View {
     // MARK: - Get Better section
 
     private var getBetterSection: some View {
-        VStack(alignment: .leading, spacing: DS.Space.md) {
+        VStack(alignment: .leading, spacing: DS.Space.lg) {
             Text("GET BETTER")
                 .font(DS.Font.label(10))
                 .gradientText(DS.Gradient.fire)
                 .kerning(1.5)
 
-            VStack(spacing: DS.Space.sm) {
+            VStack(spacing: DS.Space.md) {
                 ForEach(Array(FakeData.tips.enumerated()), id: \.offset) { _, tip in
                     tipCard(tip)
                 }
@@ -218,7 +207,7 @@ struct DashboardView: View {
     // MARK: - Remember Why section
 
     private var rememberWhySection: some View {
-        VStack(alignment: .leading, spacing: DS.Space.md) {
+        VStack(alignment: .leading, spacing: DS.Space.lg) {
             Text("REMEMBER WHY")
                 .font(DS.Font.label(10))
                 .gradientText(DS.Gradient.teal)
@@ -236,7 +225,7 @@ struct DashboardView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Text("— Your goals")
+                Text("Your goals")
                     .font(DS.Font.label(10))
                     .foregroundStyle(DS.Color.text3)
                     .kerning(1)
@@ -287,6 +276,6 @@ struct DashboardView: View {
 }
 
 #Preview {
-    DashboardView()
+    DashboardView(showRoastOverlay: .constant(false))
         .modelContainer(for: [UserProfile.self, DayScore.self], inMemory: true)
 }
